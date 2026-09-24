@@ -52,7 +52,8 @@ export async function GET(req: Request) {
         purity_carats,
         created_at,
         updated_at,
-        categories (id, name, slug, icon_svg)
+        categories (id, name, slug, icon_svg),
+        offers (id, label, description, is_active, start_date, end_date, discounts(id, discount_type, value))
       `)
       .eq("status", "published")
       .neq("availability", "sold");
@@ -80,11 +81,19 @@ export async function GET(req: Request) {
       return serverError("Failed to fetch products");
     }
 
-    // Transform response to match expected type (categories -> category)
+    // Transform response to match expected type and normalize nested relations.
     const transformedData = data?.map((item: Record<string, unknown>) => ({
       ...item,
       category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
+      offer: (() => {
+        const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+        if (!rawOffer || typeof rawOffer !== "object") return null;
+        const offer = rawOffer as Record<string, unknown>;
+        const discounts = Array.isArray(offer.discounts) ? offer.discounts : [];
+        return { ...offer, discount: discounts[0] ?? null };
+      })(),
       categories: undefined,
+      offers: undefined,
     })) || [];
 
     // Get total count for pagination

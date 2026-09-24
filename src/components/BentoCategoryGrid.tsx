@@ -47,9 +47,9 @@ export function BentoCategoryGrid({ products }: BentoCategoryGridProps) {
   const totalProducts = publishedProducts.length;
 
   return (
-    <section className="py-16 bg-gray-50">
+    <section className="bg-[#F5F2EE] py-10 sm:py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
+        <div className="mb-7 text-center sm:mb-9">
           <span className="text-xs uppercase tracking-widest text-gold font-semibold mb-1 block">Curated Collections</span>
           <h2 className="text-3xl font-serif text-charcoal">Explore by Category</h2>
         </div>

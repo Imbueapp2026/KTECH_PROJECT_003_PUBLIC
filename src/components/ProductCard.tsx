@@ -47,15 +47,6 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
             </div>
           )}
 
-          {/* Discount / Offer Badge (Top Left) */}
-          {hasOffer && discount && (
-            <div className="absolute top-2.5 left-2.5 z-10 bg-dusty-rose text-white text-[11px] font-medium tracking-wide uppercase px-2.5 py-1 rounded-sm shadow-sm">
-              {discount.discount_type === "percentage"
-                ? `${discount.value}% OFF`
-                : `₹${discount.value} OFF`}
-            </div>
-          )}
-
           {/* Hallmark Certified Badge (Top Right to avoid collision) */}
           {product.hallmark_certified && (
             <div className="absolute top-2.5 right-2.5 z-10 bg-blue-600 text-white text-[11px] font-medium px-2 py-0.5 rounded-sm shadow-sm">
@@ -68,8 +59,13 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
         </div>
         
         {/* Product info with generous spacing */}
-        <div className="flex flex-1 flex-col px-2 py-3.5">
-          <p className="h-[17px] overflow-hidden text-[11px] text-charcoal tracking-widest uppercase mb-1 font-medium line-clamp-1">
+        <div className="relative flex flex-1 flex-col px-2 py-3.5">
+          {hasOffer && (
+            <span className="absolute right-2 top-3.5 rounded-sm bg-dusty-rose px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-sm">
+                Offer
+            </span>
+          )}
+          <p className="h-[17px] overflow-hidden pr-14 text-[11px] text-charcoal tracking-widest uppercase mb-1 font-medium line-clamp-1">
             {product.category?.name || "Uncategorized"}
           </p>
           <h3 className="h-[52px] overflow-hidden font-serif text-[16px] font-medium text-charcoal leading-relaxed mb-1.5 line-clamp-2 group-hover:text-gold transition-colors">
