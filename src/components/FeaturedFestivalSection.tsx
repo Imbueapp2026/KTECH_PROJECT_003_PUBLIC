@@ -7,9 +7,9 @@ import type { Festival } from "@/types";
 
 type OfferBanner = {
   id: string;
+  offer_id: string;
   image_url: string;
   alt_text: string;
-  product_id: string;
 };
 
 export function FeaturedFestivalSection() {
@@ -94,7 +94,7 @@ export function FeaturedFestivalSection() {
   }, [fetchData]);
 
   return (
-    <section className="bg-[#FBFAF8] py-10 sm:py-14 overflow-hidden">
+    <section className="bg-[#FBFAF8] py-7 sm:py-10 overflow-hidden">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Festival Banner Header */}
         {activeFestival ? (
@@ -128,8 +128,8 @@ export function FeaturedFestivalSection() {
             </div>
           </div>
         ) : (
-          <div className="mb-8 sm:mb-10">
-            <div className="mb-4 flex items-end justify-between gap-4 px-1 sm:mb-6 sm:px-0">
+          <div className="mb-5 sm:mb-7">
+            <div className="mb-3 flex items-end justify-between gap-4 px-1 sm:mb-4 sm:px-0">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#A47B40]">Limited-time edit</p>
                 <h2 className="mt-1 font-serif text-2xl text-[#2C2C2A] sm:text-4xl">Current Offers</h2>
@@ -155,7 +155,7 @@ export function FeaturedFestivalSection() {
                 </div>
               )}
             </div>
-            <div className="relative aspect-[4/3] min-h-[280px] w-full overflow-hidden bg-gradient-to-r from-[#C9A66B] to-[#8B7355] sm:aspect-[16/7] sm:min-h-[220px] sm:max-h-[420px]">
+            <div className="relative aspect-[4/3] min-h-[220px] w-full overflow-hidden bg-gradient-to-r from-[#C9A66B] to-[#8B7355] sm:aspect-[16/7] sm:min-h-[190px] sm:max-h-[360px]">
               {offerBanners.length > 0 && (
                 <div
                   className="flex h-full w-full transition-transform duration-700 ease-out will-change-transform"
@@ -195,7 +195,7 @@ export function FeaturedFestivalSection() {
                 </div>
               )}
               <Link
-                href={offerBanners[activeBannerIndex] ? `/products/${offerBanners[activeBannerIndex].product_id}` : "/collections?offers=active"}
+                href={offerBanners[activeBannerIndex] ? `/collections?offers=active&offer_id=${offerBanners[activeBannerIndex].offer_id}` : "/collections?offers=active"}
                 className="absolute bottom-0 left-0 right-0 z-10 p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
               >
                 <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">Special Offers</span>

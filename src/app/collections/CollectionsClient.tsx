@@ -13,8 +13,11 @@ export default function CollectionsPage() {
   const [offersOnly] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("offers") === "active",
   );
+  const [offerId] = useState(() =>
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("offer_id") : null,
+  );
   const { data, isLoading } = useSWR(
-    offersOnly ? "/api/offers?limit=50" : "/api/products?sort=created_at&order=desc&limit=50",
+    offersOnly ? `/api/offers?limit=50${offerId ? `&offer_id=${encodeURIComponent(offerId)}` : ""}` : "/api/products?sort=created_at&order=desc&limit=50",
     fetcher,
   );
   const products: ProductJoined[] = data?.data || [];

@@ -14,11 +14,12 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get("limit") || "5");
+    const offerId = url.searchParams.get("offer_id");
     
     const supabase = getAnonClient();
     
     // Get products that have active offers
-    const { data, error } = await supabase
+    let query = supabase
       .from("products")
       .select(`
         id,
@@ -49,8 +50,11 @@ export async function GET(req: Request) {
       .not("offer_id", "is", null)
       .eq("status", "published")
       .eq("offers.is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(limit);
+      .order("updated_at", { ascending: false });
+
+    if (offerId) query = query.eq("offer_id", offerId);
+
+    const { data, error } = await query.limit(limit);
     
     if (error) {
       console.error('[API] GET /api/offers query error:', error);

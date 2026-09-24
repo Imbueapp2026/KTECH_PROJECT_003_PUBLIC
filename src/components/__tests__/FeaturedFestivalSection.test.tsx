@@ -17,16 +17,13 @@ const emptyProductsResponse = {
   data: [],
 };
 
-const offerProductResponse = {
+const offerBannerResponse = {
   data: [
     {
-      id: "product-1",
-      name: "Gold Ring",
-      price: 50000,
-      image_urls: [],
-      category: { id: "category-1", name: "Rings", slug: "rings" },
-      hallmark_certified: false,
-      offer: { id: "offer-1", label: "Diwali Offer", is_active: true },
+      id: "banner-1",
+      offer_id: "offer-1",
+      image_url: "https://example.com/offer.jpg",
+      alt_text: "Offer banner",
     },
   ],
 };
@@ -59,16 +56,19 @@ describe("FeaturedFestivalSection", () => {
   it("shows the promotional copy and offer status on an offer card", async () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => offerProductResponse }));
+      .mockResolvedValueOnce({ ok: true, json: async () => offerBannerResponse }));
 
     render(<FeaturedFestivalSection />);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
 
-    expect(screen.getByText("Explore our exclusive collection with special discounts")).toBeInTheDocument();
-    expect(screen.getByText("Offer available")).toBeInTheDocument();
-    expect(screen.getByText("Gold Ring")).toBeInTheDocument();
+    expect(screen.getByText("Explore exclusive pieces with special pricing")).toBeInTheDocument();
+    expect(screen.getByText("Shop offer")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /shop offer/i })).toHaveAttribute(
+      "href",
+      "/collections?offers=active&offer_id=offer-1",
+    );
   });
 
   it("shows a retry state when the offers API fails", async () => {
@@ -80,6 +80,6 @@ describe("FeaturedFestivalSection", () => {
     });
 
     expect(screen.getByText(/we couldn't load our offers right now/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+    expect(screen.getByText("No offers available")).toBeInTheDocument();
   });
 });
