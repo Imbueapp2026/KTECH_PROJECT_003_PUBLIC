@@ -2,21 +2,28 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import type { Festival } from "@/types";
 
 type OfferBanner = {
   id: string;
-  offer_id: string;
   image_url: string;
   alt_text: string;
+  offer_id?: string | null;
+  product_id?: string | null;
 };
+
+const OFFER_CAROUSEL_AUTO_ADVANCE_MS = 5000;
 
 export function FeaturedFestivalSection() {
   const [activeFestival, setActiveFestival] = useState<Festival | null>(null);
   const [fetchError, setFetchError] = useState(false);
   const [offerBanners, setOfferBanners] = useState<OfferBanner[]>([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const pointerStartXRef = useRef<number | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch festival and products data
   const fetchData = useCallback(async () => {
@@ -36,7 +43,7 @@ export function FeaturedFestivalSection() {
         const bannerRes = await fetch("/api/offer-banners");
         if (bannerRes.ok) {
           const bannerData = await bannerRes.json();
-          setOfferBanners(bannerData.data ?? []);
+          setOfferBanners((bannerData.data ?? []).slice(0, 5));
           setActiveBannerIndex(0);
         }
       } else {
@@ -58,18 +65,67 @@ export function FeaturedFestivalSection() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (activeFestival || offerBanners.length < 2) return;
+    if (activeFestival || offerBanners.length < 2 || isCarouselPaused) return;
     const interval = setInterval(() => {
       setActiveBannerIndex((index) => (index + 1) % offerBanners.length);
-    }, 5000);
+    }, OFFER_CAROUSEL_AUTO_ADVANCE_MS);
     return () => clearInterval(interval);
-  }, [activeFestival, offerBanners.length]);
+  }, [activeFestival, offerBanners.length, isCarouselPaused]);
+
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
+
+  function pauseCarousel() {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    setIsCarouselPaused(true);
+  }
+
+  function resumeCarouselSoon() {
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => setIsCarouselPaused(false), 2500);
+  }
 
   function moveBanner(direction: -1 | 1) {
     if (offerBanners.length < 2) return;
     setActiveBannerIndex((index) =>
       (index + direction + offerBanners.length) % offerBanners.length,
     );
+  }
+
+  function handleTouchStart(event: React.TouchEvent<HTMLDivElement>) {
+    pauseCarousel();
+    touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  }
+
+  function handleTouchEnd(event: React.TouchEvent<HTMLDivElement>) {
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX;
+    touchStartXRef.current = null;
+
+    if (startX !== null && endX !== undefined && Math.abs(endX - startX) > 50) {
+      moveBanner(endX < startX ? 1 : -1);
+    }
+    resumeCarouselSoon();
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch") return;
+    pauseCarousel();
+    pointerStartXRef.current = event.clientX;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch") return;
+    const startX = pointerStartXRef.current;
+    pointerStartXRef.current = null;
+    if (startX !== null && Math.abs(event.clientX - startX) > 50) {
+      moveBanner(event.clientX < startX ? 1 : -1);
+    }
+    resumeCarouselSoon();
   }
 
   // Refresh data when page becomes visible (e.g., user returns to tab)
@@ -94,7 +150,7 @@ export function FeaturedFestivalSection() {
   }, [fetchData]);
 
   return (
-    <section className="bg-[#FBFAF8] py-7 sm:py-10 overflow-hidden">
+    <section className="bg-[#FBFAF8] py-10 sm:py-14 overflow-hidden">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Festival Banner Header */}
         {activeFestival ? (
@@ -128,34 +184,27 @@ export function FeaturedFestivalSection() {
             </div>
           </div>
         ) : (
-          <div className="mb-5 sm:mb-7">
-            <div className="mb-3 flex items-end justify-between gap-4 px-1 sm:mb-4 sm:px-0">
+          <div className="mb-8 sm:mb-10">
+            <div className="mb-4 flex items-end justify-between gap-4 px-1 sm:mb-6 sm:px-0">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#A47B40]">Limited-time edit</p>
                 <h2 className="mt-1 font-serif text-2xl text-[#2C2C2A] sm:text-4xl">Current Offers</h2>
               </div>
-              {offerBanners.length > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="Previous offer"
-                    onClick={() => moveBanner(-1)}
-                    className="flex h-9 w-9 items-center justify-center border border-[#D8CFC5] text-[#2C2C2A] transition-colors hover:bg-[#2C2C2A] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A66B]"
-                  >
-                    &#8592;
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Next offer"
-                    onClick={() => moveBanner(1)}
-                    className="flex h-9 w-9 items-center justify-center border border-[#D8CFC5] text-[#2C2C2A] transition-colors hover:bg-[#2C2C2A] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A66B]"
-                  >
-                    &#8594;
-                  </button>
-                </div>
-              )}
             </div>
-            <div className="relative aspect-[4/3] min-h-[220px] w-full overflow-hidden bg-gradient-to-r from-[#C9A66B] to-[#8B7355] sm:aspect-[16/7] sm:min-h-[190px] sm:max-h-[360px]">
+            <div
+              className="group relative aspect-[4/3] min-h-[280px] w-full touch-pan-y overflow-hidden bg-gradient-to-r from-[#C9A66B] to-[#8B7355] sm:aspect-[16/7] sm:min-h-[220px] sm:max-h-[420px]"
+              onMouseEnter={pauseCarousel}
+              onMouseLeave={resumeCarouselSoon}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={resumeCarouselSoon}
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={resumeCarouselSoon}
+              onPointerLeave={(event) => {
+                if (pointerStartXRef.current !== null) handlePointerUp(event);
+              }}
+            >
               {offerBanners.length > 0 && (
                 <div
                   className="flex h-full w-full transition-transform duration-700 ease-out will-change-transform"
@@ -185,17 +234,27 @@ export function FeaturedFestivalSection() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
               {offerBanners.length > 1 && (
-                <div className="absolute bottom-5 right-5 z-10 flex gap-1.5 sm:bottom-7 sm:right-8" aria-label="Offer banner slides">
+                <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center px-5 sm:bottom-7 sm:px-8" aria-label="Offer banner controls">
+                  <div className="pointer-events-auto flex gap-2" aria-label="Offer banner slides">
                   {offerBanners.map((banner, index) => (
-                    <span
+                    <button
                       key={banner.id}
-                      className={`h-1.5 w-1.5 rounded-full ${index === activeBannerIndex ? "bg-white" : "bg-white/50"}`}
+                      type="button"
+                      aria-label={`Show offer ${index + 1}`}
+                      aria-current={index === activeBannerIndex ? "true" : undefined}
+                      onClick={() => { pauseCarousel(); setActiveBannerIndex(index); resumeCarouselSoon(); }}
+                      className={`h-2.5 w-2.5 rounded-full border border-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A66B] ${index === activeBannerIndex ? "scale-110 bg-white" : "bg-white/50 hover:bg-white/80"}`}
                     />
                   ))}
+                  </div>
                 </div>
               )}
               <Link
-                href={offerBanners[activeBannerIndex] ? `/collections?offers=active&offer_id=${offerBanners[activeBannerIndex].offer_id}` : "/collections?offers=active"}
+                href={
+                  offerBanners[activeBannerIndex]
+                    ? `/collections?offers=active${offerBanners[activeBannerIndex].offer_id ? `&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}` : ""}`
+                    : "/collections?offers=active"
+                }
                 className="absolute bottom-0 left-0 right-0 z-10 p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
               >
                 <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">Special Offers</span>

@@ -9,7 +9,7 @@ interface NewArrivalsStripProps {
 
 export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
   const newProducts = products
-    .filter((p) => p.status === "published" && !p.festival_id)
+    .filter((p) => p.status === "published" && !p.festival_id && p.is_new)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 
@@ -40,13 +40,6 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
         <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
           {newProducts.map((product) => (
             <div key={product.id} className="relative">
-              {!product.offer?.is_active && (
-                <div className="absolute top-2.5 left-2.5 z-10">
-                  <span className="rounded-sm bg-[#C98A96] px-2.5 py-1 text-[11px] font-medium uppercase tracking-wide text-white">
-                    New
-                  </span>
-                </div>
-              )}
               <ProductCard product={product} touchZoom />
             </div>
           ))}

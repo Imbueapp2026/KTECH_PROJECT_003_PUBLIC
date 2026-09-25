@@ -13,8 +13,9 @@ interface ProductCardProps {
 export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
   const [isTouching, setIsTouching] = useState(false);
   const imageUrl = product.image_urls?.[0];
-  const hasOffer = product.offer && product.offer.is_active;
+  const hasOffer = !!product.offer && product.offer.is_active;
   const discount = product.offer?.discount;
+  const isNewProduct = product.is_new === true;
 
   const discountedPrice = hasOffer && discount
     ? discount.discount_type === "percentage"
@@ -47,9 +48,20 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
             </div>
           )}
 
-          {/* Hallmark Certified Badge (Top Right to avoid collision) */}
+          {hasOffer && discount && (
+            <div className="absolute left-2.5 top-2.5 z-10 rounded-sm bg-dusty-rose px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white shadow-sm">
+              {discount.discount_type === "percentage" ? `${discount.value}% OFF` : `₹${discount.value} OFF`}
+            </div>
+          )}
+
+          {isNewProduct && (
+            <div className="absolute top-2.5 right-2.5 z-10 rounded-sm bg-[#C98A96] px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white shadow-sm">
+              New
+            </div>
+          )}
+
           {product.hallmark_certified && (
-            <div className="absolute top-2.5 right-2.5 z-10 bg-blue-600 text-white text-[11px] font-medium px-2 py-0.5 rounded-sm shadow-sm">
+            <div className={`absolute top-2.5 z-10 bg-blue-600 text-white text-[11px] font-medium px-2 py-0.5 rounded-sm shadow-sm ${isNewProduct ? "right-16" : "right-2.5"}`}>
               Hallmark
             </div>
           )}
@@ -60,11 +72,6 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
         
         {/* Product info with generous spacing */}
         <div className="relative flex flex-1 flex-col px-2 py-3.5">
-          {hasOffer && (
-            <span className="absolute right-2 top-3.5 rounded-sm bg-dusty-rose px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-white shadow-sm">
-                Offer
-            </span>
-          )}
           <p className="h-[17px] overflow-hidden pr-14 text-[11px] text-charcoal tracking-widest uppercase mb-1 font-medium line-clamp-1">
             {product.category?.name || "Uncategorized"}
           </p>

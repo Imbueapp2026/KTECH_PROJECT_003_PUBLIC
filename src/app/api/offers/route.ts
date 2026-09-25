@@ -5,6 +5,7 @@
 import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
+import { isOfferCurrentlyActive } from "@/lib/offers";
 
 export async function GET(req: Request) {
   // Handle preflight request
@@ -14,12 +15,11 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get("limit") || "5");
-    const offerId = url.searchParams.get("offer_id");
     
     const supabase = getAnonClient();
     
     // Get products that have active offers
-    let query = supabase
+    const { data, error } = await supabase
       .from("products")
       .select(`
         id,
@@ -45,16 +45,13 @@ export async function GET(req: Request) {
         material_type,
         festival_id,
         categories(id, name, slug),
-        offers(id, label, is_active)
+        offers(id, label, is_active, start_date, end_date)
       `)
       .not("offer_id", "is", null)
       .eq("status", "published")
       .eq("offers.is_active", true)
-      .order("updated_at", { ascending: false });
-
-    if (offerId) query = query.eq("offer_id", offerId);
-
-    const { data, error } = await query.limit(limit);
+      .order("updated_at", { ascending: false })
+      .limit(limit);
     
     if (error) {
       console.error('[API] GET /api/offers query error:', error);
@@ -70,7 +67,14 @@ export async function GET(req: Request) {
       categories: undefined,
       offers: undefined,
       source: 'offer',
-    })) || [];
+    })).filter((item: Record<string, unknown>) => {
+      const offer = item.offer;
+      return !!offer && typeof offer === "object" && isOfferCurrentlyActive(offer as {
+        is_active: boolean;
+        start_date: string | null;
+        end_date: string | null;
+      });
+    }) || [];
     
     const response = Response.json({ data: transformedData }, {
       headers: { 'Cache-Control': 'public, max-age=60, stale-while-revalidate=300' }
