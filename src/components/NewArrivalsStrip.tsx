@@ -9,7 +9,7 @@ interface NewArrivalsStripProps {
 
 export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
   const newProducts = products
-    .filter((p) => p.status === "published" && !p.festival_id && p.is_new)
+    .filter((p) => p.status === "published" && !p.festival_id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 
