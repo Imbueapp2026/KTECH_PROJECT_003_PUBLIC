@@ -155,7 +155,7 @@ export function FeaturedFestivalSection() {
         {/* Festival Banner Header */}
         {activeFestival ? (
           <div className="mb-10 overflow-hidden rounded-2xl shadow-lg">
-            <div 
+            <div
               className="relative aspect-[4/5] sm:aspect-[16/7] min-h-[420px] sm:min-h-[220px] sm:max-h-[420px] w-full overflow-hidden"
             >
               {activeFestival.image_url ? (
@@ -234,18 +234,18 @@ export function FeaturedFestivalSection() {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
               {offerBanners.length > 1 && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 flex justify-center px-5 sm:bottom-7 sm:px-8" aria-label="Offer banner controls">
+                <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-5 sm:bottom-7 sm:px-8" aria-label="Offer banner controls">
                   <div className="pointer-events-auto flex gap-2" aria-label="Offer banner slides">
-                  {offerBanners.map((banner, index) => (
-                    <button
-                      key={banner.id}
-                      type="button"
-                      aria-label={`Show offer ${index + 1}`}
-                      aria-current={index === activeBannerIndex ? "true" : undefined}
-                      onClick={() => { pauseCarousel(); setActiveBannerIndex(index); resumeCarouselSoon(); }}
-                      className={`h-2.5 w-2.5 rounded-full border border-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A66B] ${index === activeBannerIndex ? "scale-110 bg-white" : "bg-white/50 hover:bg-white/80"}`}
-                    />
-                  ))}
+                    {offerBanners.map((banner, index) => (
+                      <button
+                        key={banner.id}
+                        type="button"
+                        aria-label={`Show offer ${index + 1}`}
+                        aria-current={index === activeBannerIndex ? "true" : undefined}
+                        onClick={(e) => { e.preventDefault(); pauseCarousel(); setActiveBannerIndex(index); resumeCarouselSoon(); }}
+                        className={`h-2.5 w-2.5 rounded-full border border-white/70 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A66B] ${index === activeBannerIndex ? "scale-110 bg-white" : "bg-white/50 hover:bg-white/80"}`}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -255,17 +255,19 @@ export function FeaturedFestivalSection() {
                     ? `/collections?offers=active${offerBanners[activeBannerIndex].offer_id ? `&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}` : ""}`
                     : "/collections?offers=active"
                 }
-                className="absolute bottom-0 left-0 right-0 z-10 p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
+                className="absolute inset-0 z-10 flex flex-col justify-end p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
               >
-                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">Special Offers</span>
-                <p className="max-w-xl text-sm font-light text-white/90 sm:text-base">
-                  {fetchError
-                    ? "We couldn't load our offers right now"
-                    : offerBanners.length > 0
-                    ? "Explore exclusive pieces with special pricing"
-                    : "No offers available"}
-                </p>
-                <span className="mt-4 inline-flex border-b border-white/80 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">Shop offer</span>
+                <div>
+                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">Special Offers</span>
+                  <p className="max-w-xl text-sm font-light text-white/90 sm:text-base">
+                    {fetchError
+                      ? "We couldn't load our offers right now"
+                      : offerBanners.length > 0
+                        ? "Explore exclusive pieces with special pricing"
+                        : "No offers available"}
+                  </p>
+                  <span className="mt-4 inline-flex border-b border-white/80 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">Shop offer</span>
+                </div>
               </Link>
             </div>
           </div>

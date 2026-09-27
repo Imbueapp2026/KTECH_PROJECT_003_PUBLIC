@@ -8,12 +8,13 @@ interface NewArrivalsStripProps {
 }
 
 export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
-  const newProducts = products
+  const publishedProducts = products
     .filter((p) => p.status === "published" && !p.festival_id)
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 8);
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const newProducts = publishedProducts.filter((product) => product.is_new).slice(0, 8);
+  const recentlyAddedProducts = publishedProducts.filter((product) => !product.is_new).slice(0, 8);
 
-  if (newProducts.length === 0) {
+  if (newProducts.length === 0 && recentlyAddedProducts.length === 0) {
     return (
       <section className="bg-white py-10 sm:py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -37,13 +38,37 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
           <span className="hidden text-xs text-charcoal/50 sm:block">Latest pieces, selected for you</span>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
-          {newProducts.map((product) => (
-            <div key={product.id} className="relative">
-              <ProductCard product={product} touchZoom />
+        {newProducts.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
+            {newProducts.map((product) => (
+              <div key={product.id} className="relative">
+                <ProductCard product={product} touchZoom />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-charcoal/70">New pieces coming soon</p>
+          </div>
+        )}
+
+        {recentlyAddedProducts.length > 0 && (
+          <div className="mt-12 border-t border-charcoal/10 pt-8 sm:mt-14">
+            <div className="mb-6 flex items-end justify-between gap-4">
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-charcoal/50">Before the latest drop</p>
+                <h3 className="font-serif text-2xl text-charcoal sm:text-3xl">Recently Added</h3>
+              </div>
             </div>
-          ))}
-        </div>
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
+              {recentlyAddedProducts.map((product) => (
+                <div key={product.id} className="relative">
+                  <ProductCard product={product} touchZoom />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
