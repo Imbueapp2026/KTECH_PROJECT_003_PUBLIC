@@ -23,6 +23,7 @@ export function FeaturedFestivalSection() {
   const [isCarouselPaused, setIsCarouselPaused] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const pointerStartXRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch festival and products data
@@ -105,8 +106,13 @@ export function FeaturedFestivalSection() {
     const endX = event.changedTouches[0]?.clientX;
     touchStartXRef.current = null;
 
-    if (startX !== null && endX !== undefined && Math.abs(endX - startX) > 50) {
-      moveBanner(endX < startX ? 1 : -1);
+    if (startX !== null && endX !== undefined && Math.abs(endX - startX) > 10) {
+      isDraggingRef.current = true;
+      if (Math.abs(endX - startX) > 50) {
+        moveBanner(endX < startX ? 1 : -1);
+      }
+    } else {
+      isDraggingRef.current = false;
     }
     resumeCarouselSoon();
   }
@@ -115,15 +121,19 @@ export function FeaturedFestivalSection() {
     if (event.pointerType === "touch") return;
     pauseCarousel();
     pointerStartXRef.current = event.clientX;
-    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
     if (event.pointerType === "touch") return;
     const startX = pointerStartXRef.current;
     pointerStartXRef.current = null;
-    if (startX !== null && Math.abs(event.clientX - startX) > 50) {
-      moveBanner(event.clientX < startX ? 1 : -1);
+    if (startX !== null && Math.abs(event.clientX - startX) > 10) {
+      isDraggingRef.current = true;
+      if (Math.abs(event.clientX - startX) > 50) {
+        moveBanner(event.clientX < startX ? 1 : -1);
+      }
+    } else {
+      isDraggingRef.current = false;
     }
     resumeCarouselSoon();
   }
@@ -255,6 +265,9 @@ export function FeaturedFestivalSection() {
                     ? `/collections?offers=active${offerBanners[activeBannerIndex].offer_id ? `&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}` : ""}`
                     : "/collections?offers=active"
                 }
+                onClick={(e) => {
+                  if (isDraggingRef.current) e.preventDefault();
+                }}
                 className="absolute inset-0 z-10 flex flex-col justify-end p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
               >
                 <div>
