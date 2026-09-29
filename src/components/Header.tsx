@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { GoldPriceDisplay } from "./GoldPriceDisplay";
 
@@ -59,9 +60,15 @@ export function Header() {
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo/Brand */}
           <Link href="/" className="flex items-center min-h-[44px]">
-            <span className={`text-lg sm:text-2xl font-serif font-semibold tracking-wide ${isSolidStyle ? "text-charcoal" : "text-white"}`}>
-              Avirat Jewelers
-            </span>
+            <div className="relative w-12 h-12 sm:w-16 sm:h-16">
+              <Image
+                src="/logo.png"
+                alt="Avirat Jewelers Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
