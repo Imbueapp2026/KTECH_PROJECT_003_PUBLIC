@@ -8,7 +8,7 @@ export function formatPrice(n: number): string {
 }
 
 export function formatWeight(n: number): string {
-  return `${n.toFixed(1)}g`;
+  return `${n.toFixed(3)}g`;
 }
 
 export function formatGoldPrice(n: number): string {
