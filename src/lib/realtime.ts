@@ -1,14 +1,22 @@
 /**
  * Realtime subscription utilities for the public app
- * Subscribes to database changes for live updates
+ * Subscribes to database changes for live updates pushed from admin
  */
 import { getAnonClient } from './supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
+
+export type ChangeHandler = (payload: {
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+  eventType: string;
+}) => void;
 
 export type ProductChangeHandler = (payload: {
   new: Record<string, unknown>;
   old: Record<string, unknown>;
 }) => void;
+
+// ─── Products ────────────────────────────────────────────────────────────────
 
 /**
  * Subscribe to published product changes (INSERT and UPDATE)
@@ -55,13 +63,7 @@ export function subscribeToProducts(
   return channel;
 }
 
-/**
- * Unsubscribe from a realtime channel
- */
-export function unsubscribeFromChannel(channel: RealtimeChannel): void {
-  const supabase = getAnonClient();
-  supabase.removeChannel(channel);
-}
+// ─── Category-scoped Products ────────────────────────────────────────────────
 
 /**
  * Subscribe to a specific category's products
@@ -106,4 +108,228 @@ export function subscribeToCategoryProducts(
     });
 
   return channel;
+}
+
+// ─── Offers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to offers table changes (admin adds/edits/toggles offers)
+ */
+export function subscribeToOffers(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('offers-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'offers' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'offers' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'offers' },
+      (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to offers changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Offers subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Offer Banners ───────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to offer_banners table changes (admin adds/edits banners)
+ */
+export function subscribeToOfferBanners(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('offer-banners-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'offer_banners' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'offer_banners' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'offer_banners' },
+      (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to offer_banners changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Offer banners subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Discounts ───────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to discounts table changes (pricing updates from admin)
+ */
+export function subscribeToDiscounts(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('discounts-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'discounts' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'discounts' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'discounts' },
+      (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to discounts changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Discounts subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Festivals ───────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to festivals table changes (admin activates/edits festivals)
+ */
+export function subscribeToFestivals(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('festivals-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'festivals' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'festivals' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'festivals' },
+      (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to festivals changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Festivals subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Gold Prices ─────────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to gold_prices table changes (admin updates gold rate)
+ */
+export function subscribeToGoldPrices(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('gold-prices-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'gold_prices' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'gold_prices' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to gold_prices changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Gold prices subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Silver Prices ───────────────────────────────────────────────────────────
+
+/**
+ * Subscribe to silver_prices table changes (admin updates silver rate)
+ */
+export function subscribeToSilverPrices(onChange: ChangeHandler): RealtimeChannel {
+  const supabase = getAnonClient();
+
+  const channel = supabase
+    .channel('silver-prices-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'silver_prices' },
+      (payload) => onChange({ ...payload, eventType: 'INSERT' } as Parameters<ChangeHandler>[0])
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'silver_prices' },
+      (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
+    )
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('[Realtime] Subscribed to silver_prices changes');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('[Realtime] Silver prices subscription error');
+      }
+    });
+
+  return channel;
+}
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+/**
+ * Unsubscribe from a realtime channel
+ */
+export function unsubscribeFromChannel(channel: RealtimeChannel): void {
+  const supabase = getAnonClient();
+  supabase.removeChannel(channel);
+}
+
+/**
+ * Unsubscribe from multiple channels at once
+ */
+export function unsubscribeFromChannels(channels: RealtimeChannel[]): void {
+  const supabase = getAnonClient();
+  channels.forEach((channel) => supabase.removeChannel(channel));
 }

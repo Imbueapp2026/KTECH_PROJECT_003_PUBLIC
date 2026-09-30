@@ -2,17 +2,47 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState, useCallback, useEffect } from "react";
 import { formatPrice, formatWeight } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductJoined } from "@/types";
+import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 interface ProductDetailViewProps {
   product: ProductJoined;
   relatedProducts: ProductJoined[];
 }
 
-export function ProductDetailView({ product, relatedProducts }: ProductDetailViewProps) {
+export function ProductDetailView({ product: initialProduct, relatedProducts: initialRelated }: ProductDetailViewProps) {
+  const [product, setProduct] = useState(initialProduct);
+  const [relatedProducts] = useState(initialRelated);
+
+  // Refetch product data when admin makes changes
+  const refetchProduct = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/products/${product.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.data) {
+          setProduct(data.data);
+        }
+      }
+    } catch {
+      // Silently fail — SSR data is still displayed
+    }
+  }, [product.id]);
+
+  // Sync if the SSR prop changes (e.g., navigation)
+  useEffect(() => {
+    setProduct(initialProduct);
+  }, [initialProduct]);
+
+  // Realtime: update when admin changes products, offers, or discounts
+  useRealtimeAdminChanges(
+    ['products', 'offers', 'discounts'],
+    refetchProduct,
+  );
   const materialType = (product.material_type as "gold" | "silver") || "gold";
 
   const discount = Array.isArray(product.offer?.discount)

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 interface MetalPriceInfo {
   price_per_gram: number;
@@ -29,33 +30,30 @@ export function GoldPriceDisplay({
   const [prices, setPrices] = useState<MetalPricesData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchPrices() {
-      try {
-        const response = await api.get<MetalPricesData>("/api/metal-prices");
-        if (isMounted && response) {
-          setPrices(response);
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn("Metal prices fetch error:", err instanceof ApiError ? err.message : err);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
+  const fetchPrices = useCallback(async () => {
+    try {
+      const response = await api.get<MetalPricesData>("/api/metal-prices");
+      if (response) {
+        setPrices(response);
       }
+    } catch (err) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Metal prices fetch error:", err instanceof ApiError ? err.message : err);
+      }
+    } finally {
+      setLoading(false);
     }
-    
-    fetchPrices();
-    
-    // Poll for updates every 2 minutes
-    const interval = setInterval(fetchPrices, 120000);
-    
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
   }, []);
+
+  useEffect(() => {
+    fetchPrices();
+  }, [fetchPrices]);
+
+  // Realtime: instantly update when admin changes gold/silver prices
+  useRealtimeAdminChanges(
+    ['gold_prices', 'silver_prices'],
+    fetchPrices,
+  );
 
   if (loading) {
     if (variant === "header") {

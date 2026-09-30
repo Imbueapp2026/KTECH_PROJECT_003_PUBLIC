@@ -1,40 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { NewArrivalsStrip } from "./NewArrivalsStrip";
 import { BentoCategoryGrid } from "./BentoCategoryGrid";
 import { ShopByPrice } from "./ShopByPrice";
 import type { ProductJoined } from "@/types";
+import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 export function HomeProductsSection() {
   const [products, setProducts] = useState<ProductJoined[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('/api/products?sort=created_at&order=desc&limit=100', {
-          cache: "no-store",
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (isMounted && result.data) {
-            setProducts(result.data);
-          }
+  const fetchProducts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/products?sort=created_at&order=desc&limit=100', {
+        cache: "no-store",
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data) {
+          setProducts(result.data);
         }
-      } catch (error) {
-        console.error('Failed to fetch products for home sections:', error);
-      } finally {
-        if (isMounted) setLoading(false);
       }
-    };
-
-    fetchProducts();
-    return () => {
-      isMounted = false;
-    };
+    } catch (error) {
+      console.error('Failed to fetch products for home sections:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Realtime: refresh when admin adds/edits products, offers, or pricing
+  useRealtimeAdminChanges(
+    ['products', 'offers', 'discounts'],
+    fetchProducts,
+  );
 
   if (loading) {
     return (

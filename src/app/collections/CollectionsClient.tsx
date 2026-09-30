@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import useSWR from "swr";
 import { useSearchParams } from "next/navigation";
 import { CategoryIntro } from "@/components/CategoryIntro";
 import { FilterSortBar, FilterState } from "@/components/FilterSortBar";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductJoined } from "@/types";
+import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -18,13 +19,19 @@ export default function CollectionsPage() {
   const maxPrice = searchParams.get("maxPrice");
   const priceQuery = `${minPrice ? `&minPrice=${encodeURIComponent(minPrice)}` : ""}${maxPrice ? `&maxPrice=${encodeURIComponent(maxPrice)}` : ""}`;
 
-  const { data, isLoading } = useSWR(
-    offersOnly
-      ? `/api/products?sort=created_at&order=desc&limit=50${selectedOfferId ? `&offer_id=${encodeURIComponent(selectedOfferId)}` : ""}${priceQuery}`
-      : `/api/products?sort=created_at&order=desc&limit=50${priceQuery}`,
-    fetcher,
-  );
+  const swrKey = offersOnly
+    ? `/api/products?sort=created_at&order=desc&limit=50${selectedOfferId ? `&offer_id=${encodeURIComponent(selectedOfferId)}` : ""}${priceQuery}`
+    : `/api/products?sort=created_at&order=desc&limit=50${priceQuery}`;
+
+  const { data, isLoading, mutate } = useSWR(swrKey, fetcher);
   const products: ProductJoined[] = useMemo(() => data?.data || [], [data?.data]);
+
+  // Realtime: revalidate when admin changes products, offers, or discounts
+  const revalidate = useCallback(() => { void mutate(); }, [mutate]);
+  useRealtimeAdminChanges(
+    ['products', 'offers', 'discounts', 'offer_banners'],
+    revalidate,
+  );
   
   const [filters, setFilters] = useState<FilterState>({});
 

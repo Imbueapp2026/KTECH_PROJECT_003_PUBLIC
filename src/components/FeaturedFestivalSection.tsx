@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Festival } from "@/types";
+import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 type OfferBanner = {
   id: string;
@@ -150,14 +151,11 @@ export function FeaturedFestivalSection() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [fetchData]);
 
-  // Periodic refresh to check for new festivals/offers
-  useEffect(() => {
-    const interval = setInterval(() => {
-      void fetchData();
-    }, 10000); // Check every 10 seconds for new festivals/offers
-
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  // Realtime: instantly refresh when admin adds/edits offers, banners, or festivals
+  useRealtimeAdminChanges(
+    ['offers', 'offer_banners', 'festivals', 'discounts'],
+    fetchData,
+  );
 
   return (
     <section className="bg-[#FBFAF8] py-10 sm:py-14 overflow-hidden">
