@@ -2,6 +2,9 @@ import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
 import { isOfferCurrentlyActive } from "@/lib/offers";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const supabase = getAnonClient();
 
@@ -37,7 +40,5 @@ export async function GET() {
 
   console.log('[API] Active banners count:', activeBanners.length);
 
-  return Response.json({ data: activeBanners }, {
-    headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" },
-  });
+  return Response.json({ data: activeBanners });
 }

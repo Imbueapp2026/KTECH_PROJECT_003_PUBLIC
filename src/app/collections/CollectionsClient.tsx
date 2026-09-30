@@ -27,7 +27,10 @@ export default function CollectionsPage() {
   const products: ProductJoined[] = useMemo(() => data?.data || [], [data?.data]);
 
   // Realtime: revalidate when admin changes products, offers, or discounts
-  const revalidate = useCallback(() => { void mutate(); }, [mutate]);
+  const revalidate = useCallback(() => {
+    console.log('[Collections] Revalidating products due to admin changes');
+    void mutate();
+  }, [mutate]);
   useRealtimeAdminChanges(
     ['products', 'offers', 'discounts', 'offer_banners'],
     revalidate,

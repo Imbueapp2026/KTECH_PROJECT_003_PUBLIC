@@ -9,6 +9,7 @@ import { handlePreflight, withCors } from "@/lib/cors";
 import { isOfferCurrentlyActive } from "@/lib/offers";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: Request) {
   // Handle preflight request
@@ -101,26 +102,37 @@ export async function GET(req: Request) {
     }
 
     // Transform response to match expected type and normalize nested relations.
-    const transformedData = data?.map((item: Record<string, unknown>) => ({
-      ...item,
-      is_new: typeof item.created_at === "string"
-        && Date.now() - new Date(item.created_at).getTime() <= 30 * 24 * 60 * 60 * 1000,
-      category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
-      offer: (() => {
-        const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
-        if (!rawOffer || typeof rawOffer !== "object") return null;
+    const transformedData = data?.map((item: Record<string, unknown>) => {
+      const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+      console.log('[API Products] Product', item.id, 'raw offer:', rawOffer);
+
+      let processedOffer = null;
+      if (rawOffer && typeof rawOffer === "object") {
         const offer = rawOffer as Record<string, unknown>;
-        if (!isOfferCurrentlyActive({
+        const isActive = isOfferCurrentlyActive({
           is_active: offer.is_active === true,
           start_date: typeof offer.start_date === "string" ? offer.start_date : null,
           end_date: typeof offer.end_date === "string" ? offer.end_date : null,
-        })) return null;
-        const discounts = Array.isArray(offer.discounts) ? offer.discounts : [];
-        return { ...offer, discount: discounts[0] ?? null };
-      })(),
-      categories: undefined,
-      offers: undefined,
-    })) || [];
+        });
+        console.log('[API Products] Product', item.id, 'offer is_active:', offer.is_active, 'currentlyActive:', isActive);
+
+        if (isActive) {
+          const discounts = Array.isArray(offer.discounts) ? offer.discounts : [];
+          console.log('[API Products] Product', item.id, 'discounts:', discounts);
+          processedOffer = { ...offer, discount: discounts[0] ?? null };
+        }
+      }
+
+      return {
+        ...item,
+        is_new: typeof item.created_at === "string"
+          && Date.now() - new Date(item.created_at).getTime() <= 30 * 24 * 60 * 60 * 1000,
+        category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
+        offer: processedOffer,
+        categories: undefined,
+        offers: undefined,
+      };
+    }) || [];
 
     // Get total count for pagination
     let countQuery = supabase
@@ -159,8 +171,6 @@ export async function GET(req: Request) {
         total: totalCount || 0,
         hasMore: (offset + limit) < (totalCount || 0),
       },
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' }
     });
     return withCors(response, req, { origin: '*' });
   } catch (err) {
