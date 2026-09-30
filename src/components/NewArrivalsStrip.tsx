@@ -11,8 +11,14 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
   const publishedProducts = products
     .filter((p) => p.status === "published" && !p.festival_id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const newProducts = publishedProducts.filter((product) => product.is_new).slice(0, 8);
-  const recentlyAddedProducts = publishedProducts.filter((product) => !product.is_new).slice(0, 8);
+  const newArrivalProducts = publishedProducts.filter((product) => product.is_new);
+  const newProducts = newArrivalProducts.slice(0, 8);
+  const recentlyAddedProducts = [
+    ...newArrivalProducts.slice(8),
+    ...publishedProducts.filter((product) => !product.is_new),
+  ]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 8);
 
   if (newProducts.length === 0 && recentlyAddedProducts.length === 0) {
     return (
