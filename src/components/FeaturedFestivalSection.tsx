@@ -38,6 +38,7 @@ export function FeaturedFestivalSection() {
       if (festivalRes.ok) {
         const festivalData = await festivalRes.json();
         currentFestival = festivalData.data || null;
+        console.log('[FeaturedFestival] Active festival:', currentFestival);
         setActiveFestival(currentFestival);
       }
 
@@ -45,14 +46,19 @@ export function FeaturedFestivalSection() {
         const bannerRes = await fetch("/api/offer-banners");
         if (bannerRes.ok) {
           const bannerData = await bannerRes.json();
-          setOfferBanners((bannerData.data ?? []).slice(0, 5));
+          console.log('[FeaturedFestival] Banner data:', bannerData);
+          const banners = (bannerData.data ?? []).slice(0, 5);
+          console.log('[FeaturedFestival] Banners to display:', banners);
+          setOfferBanners(banners);
           setActiveBannerIndex(0);
+        } else {
+          console.error('[FeaturedFestival] Banner fetch failed:', bannerRes.status);
         }
       } else {
         setOfferBanners([]);
       }
     } catch (error) {
-      console.warn("Failed to fetch festival data:", error);
+      console.warn("[FeaturedFestival] Failed to fetch festival data:", error);
       setOfferBanners([]);
       setActiveBannerIndex(0);
       setFetchError(true);
