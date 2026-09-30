@@ -7,6 +7,26 @@ export function formatPrice(n: number): string {
   }).format(n);
 }
 
+export function formatStoredRupees(value: number | string): string {
+  const rawValue = String(value);
+  const match = rawValue.match(/^(-?)(\d+)(\.\d+)?$/);
+  if (!match) return `₹${rawValue}`;
+
+  const [, sign, integerPart, fractionalPart = ""] = match;
+  const groupedInteger = integerPart.replace(/\B(?=(\d{2})*\d{3}(?!\d))/g, ",");
+  return `₹${sign}${groupedInteger}${fractionalPart}`;
+}
+
+export function getOfferDiscountTypeLabel(type?: import("@/types").OfferDiscountType | null): string {
+  switch (type) {
+    case "flat": return "Flat offer";
+    case "percentage": return "Percentage offer";
+    case "making_charge": return "Making charge offer";
+    case "mixed": return "Mixed offer";
+    default: return "";
+  }
+}
+
 export function formatWeight(n: number): string {
   return `${n.toFixed(3)}g`;
 }

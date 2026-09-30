@@ -3,8 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useCallback, useRef, useEffect } from "react";
-import { formatPrice, formatWeight } from "@/lib/utils";
-import { getOfferPricing } from "@/lib/pricing";
+import { formatPrice, formatStoredRupees, formatWeight, getOfferDiscountTypeLabel } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductJoined } from "@/types";
@@ -52,13 +51,9 @@ export function ProductDetailView({ product: initialProduct, relatedProducts: in
   );
   const materialType = (product.material_type as "gold" | "silver") || "gold";
 
-  const discount = Array.isArray(product.offer?.discount)
-    ? product.offer.discount[0]
-    : product.offer?.discount || null;
-  const offerState = getOfferPricing(product, discount);
-  const hasOffer = offerState.hasOffer;
+  const hasOffer = Boolean(product.offer_id) && product.offer_price !== null && product.offer_price !== undefined;
+  const discountTypeLabel = getOfferDiscountTypeLabel(product.offer_discount_type);
   const imageUrl = product.image_urls?.[0] || null;
-  const finalPrice = offerState.finalPrice;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-4 md:px-8">
@@ -91,11 +86,9 @@ export function ProductDetailView({ product: initialProduct, relatedProducts: in
                   <span className="text-sm">No image available</span>
                 </div>
               )}
-              {hasOffer && discount && (
+              {hasOffer && product.offer_discount_amount !== null && product.offer_discount_amount !== undefined && (
                 <div className="absolute top-4 right-4 bg-gold text-white px-3 py-1 rounded text-sm font-semibold">
-                  {discount.discount_type === "percentage"
-                    ? `${discount.value}% OFF`
-                    : `₹${discount.value} OFF`}
+                  {formatStoredRupees(product.offer_discount_amount)} OFF{discountTypeLabel ? ` - ${discountTypeLabel}` : ""}
                 </div>
               )}
               {product.hallmark_certified && (
@@ -151,18 +144,18 @@ export function ProductDetailView({ product: initialProduct, relatedProducts: in
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-charcoal/70 mb-1">Price ({materialType === "gold" ? "Gold" : "Silver"})</p>
                 <div className="flex items-baseline gap-2">
-                  {hasOffer && discount ? (
+                  {hasOffer ? (
                     <>
                       <span className="text-2xl sm:text-3xl font-bold text-charcoal">
-                        {formatPrice(finalPrice)}
+                        {formatStoredRupees(product.offer_price!)}
                       </span>
                       <span className="text-lg text-charcoal/40 line-through">
-                        {formatPrice(product.price)}
+                        {formatStoredRupees(product.price)}
                       </span>
                     </>
                   ) : (
                     <span className="text-2xl sm:text-3xl font-bold text-charcoal">
-                      {formatPrice(product.price)}
+                      {formatStoredRupees(product.price)}
                     </span>
                   )}
                 </div>

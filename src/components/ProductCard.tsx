@@ -2,8 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatPrice } from "@/lib/utils";
-import { getOfferPricing } from "@/lib/pricing";
+import { formatStoredRupees, getOfferDiscountTypeLabel } from "@/lib/utils";
 import type { ProductJoined } from "@/types";
 
 interface ProductCardProps {
@@ -14,14 +13,9 @@ interface ProductCardProps {
 export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
   const [isTouching, setIsTouching] = useState(false);
   const imageUrl = product.image_urls?.[0];
-  const discount = Array.isArray(product.offer?.discount)
-    ? product.offer.discount[0]
-    : product.offer?.discount || null;
-  const offerState = getOfferPricing(product, discount);
-  const hasOffer = offerState.hasOffer;
+  const hasOffer = Boolean(product.offer_id) && product.offer_price !== null && product.offer_price !== undefined;
   const isNewProduct = product.is_new === true;
-
-  const discountedPrice = offerState.finalPrice;
+  const discountTypeLabel = getOfferDiscountTypeLabel(product.offer_discount_type);
 
   return (
     <Link
@@ -48,9 +42,9 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
             </div>
           )}
 
-          {hasOffer && discount && (
+          {hasOffer && product.offer_discount_amount !== null && product.offer_discount_amount !== undefined && (
             <div className="absolute left-2.5 top-2.5 z-10 rounded-sm bg-dusty-rose px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white shadow-sm">
-              {discount.discount_type === "percentage" ? `${discount.value}% OFF` : `₹${discount.value} OFF`}
+              {formatStoredRupees(product.offer_discount_amount)} OFF{discountTypeLabel ? ` - ${discountTypeLabel}` : ""}
             </div>
           )}
 
@@ -84,18 +78,18 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
             </p>
           )}
           <div className="flex items-baseline gap-2">
-            {hasOffer && discount ? (
+            {hasOffer ? (
               <>
                 <span className="text-[12px] text-charcoal/50 line-through">
-                  {formatPrice(product.price)}
+                  {formatStoredRupees(product.price)}
                 </span>
                 <span className="text-[15px] font-medium text-charcoal">
-                  {formatPrice(discountedPrice)}
+                  {formatStoredRupees(product.offer_price!)}
                 </span>
               </>
             ) : (
               <span className="text-[15px] font-medium text-charcoal">
-                {formatPrice(product.price)}
+                {formatStoredRupees(product.price)}
               </span>
             )}
           </div>

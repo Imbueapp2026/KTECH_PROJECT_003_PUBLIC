@@ -12,6 +12,7 @@ type OfferBanner = {
   alt_text: string;
   offer_id?: string | null;
   product_id?: string | null;
+  display_order?: number | null;
 };
 
 const OFFER_CAROUSEL_AUTO_ADVANCE_MS = 5000;
@@ -147,6 +148,8 @@ export function FeaturedFestivalSection() {
     resumeCarouselSoon();
   }
 
+  const activeBanner = offerBanners[activeBannerIndex];
+
   // Refresh data when page becomes visible (e.g., user returns to tab)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -276,9 +279,11 @@ export function FeaturedFestivalSection() {
               )}
               <Link
                 href={
-                  offerBanners[activeBannerIndex]
-                    ? `/collections?offers=active${offerBanners[activeBannerIndex].offer_id ? `&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}` : ""}`
-                    : "/collections?offers=active"
+                  activeBanner?.product_id
+                    ? `/products/${activeBanner.product_id}`
+                    : activeBanner
+                      ? `/collections?offers=active${activeBanner.offer_id ? `&offer_id=${encodeURIComponent(activeBanner.offer_id)}` : ""}`
+                      : "/collections?offers=active"
                 }
                 onClick={(e) => {
                   if (isDraggingRef.current) e.preventDefault();
