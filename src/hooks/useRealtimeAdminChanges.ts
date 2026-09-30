@@ -59,7 +59,6 @@ export function useRealtimeAdminChanges(
 
   // Keep callback ref stable to avoid re-subscribing on every render
   const callbackRef = useRef(onChangeCallback);
-  callbackRef.current = onChangeCallback;
 
   const debouncedHandler = useCallback(() => {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -67,6 +66,11 @@ export function useRealtimeAdminChanges(
       callbackRef.current();
     }, debounceMs);
   }, [debounceMs]);
+
+  // Update ref when callback changes
+  useEffect(() => {
+    callbackRef.current = onChangeCallback;
+  }, [onChangeCallback]);
 
   useEffect(() => {
     // Only subscribe client-side

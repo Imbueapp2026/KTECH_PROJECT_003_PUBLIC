@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 
 export interface BannerItem {
@@ -51,16 +52,16 @@ export function Banner({ items, columns = 3, aspectRatio = "16/9", className = "
               href={item.linkUrl}
               className="group relative block overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300"
             >
-              <div 
+              <div
                 className="relative w-full"
                 style={{ aspectRatio }}
               >
                 {item.imageUrl && !hasImageError ? (
-                  <img
+                  <Image
                     src={item.imageUrl}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    crossOrigin="anonymous"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={() => handleImageError(item.id)}
                   />
                 ) : (

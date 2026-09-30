@@ -45,9 +45,11 @@ export function GoldPriceDisplay({
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     fetchPrices();
-  }, [fetchPrices]);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   // Realtime: instantly update when admin changes gold/silver prices
   useRealtimeAdminChanges(

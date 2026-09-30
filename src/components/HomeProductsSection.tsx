@@ -29,9 +29,11 @@ export function HomeProductsSection() {
     }
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
   // Realtime: refresh when admin adds/edits products, offers, or pricing
   useRealtimeAdminChanges(

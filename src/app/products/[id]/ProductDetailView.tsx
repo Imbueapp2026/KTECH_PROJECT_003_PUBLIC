@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { formatPrice, formatWeight } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
@@ -17,26 +17,32 @@ interface ProductDetailViewProps {
 export function ProductDetailView({ product: initialProduct, relatedProducts: initialRelated }: ProductDetailViewProps) {
   const [product, setProduct] = useState(initialProduct);
   const [relatedProducts] = useState(initialRelated);
+  const productIdRef = useRef(initialProduct.id);
 
   // Refetch product data when admin makes changes
   const refetchProduct = useCallback(async () => {
     try {
-      const res = await fetch(`/api/products/${product.id}`);
+      const currentProductId = productIdRef.current;
+      const res = await fetch(`/api/products/${currentProductId}`);
       if (res.ok) {
         const data = await res.json();
         if (data?.data) {
           setProduct(data.data);
+          productIdRef.current = data.data.id;
         }
       }
     } catch {
       // Silently fail — SSR data is still displayed
     }
-  }, [product.id]);
+  }, []);
 
-  // Sync if the SSR prop changes (e.g., navigation)
+  // Sync state when initialProduct prop changes (e.g., navigation)
   useEffect(() => {
-    setProduct(initialProduct);
-  }, [initialProduct]);
+    if (initialProduct.id !== productIdRef.current) {
+      productIdRef.current = initialProduct.id;
+      setProduct(initialProduct);
+    }
+  }, [initialProduct.id, initialProduct]);
 
   // Realtime: update when admin changes products, offers, or discounts
   useRealtimeAdminChanges(
