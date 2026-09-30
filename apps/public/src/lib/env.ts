@@ -15,7 +15,7 @@ export function validateEnv(): EnvConfig {
   if (cachedConfig) return cachedConfig;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL;
 
   const errors: string[] = [];
@@ -27,7 +27,7 @@ export function validateEnv(): EnvConfig {
   }
 
   if (!supabaseAnonKey) {
-    errors.push('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required');
+    errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is required');
   }
 
   if (errors.length > 0) {

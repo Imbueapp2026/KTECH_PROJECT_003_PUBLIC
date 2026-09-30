@@ -15,6 +15,7 @@ import {
   getFeaturedProducts,
   calculateDiscountedPrice,
 } from "@/lib/admin-sync";
+import type { DiscountableOffer } from "@/lib/admin-sync";
 
 export function useAdminData(options: { autoRefresh?: boolean; realtime?: boolean } = {}) {
   const { autoRefresh = true, realtime = true } = options;
@@ -91,7 +92,7 @@ export function useAdminData(options: { autoRefresh?: boolean; realtime?: boolea
     getBannerItems: useCallback(() => (data ? getBannerItems(data) : []), [data]),
     getProductsWithActiveOffers: useCallback(() => (data ? getProductsWithActiveOffers(data) : []), [data]),
     getFeaturedProducts: useCallback(() => (data ? getFeaturedProducts(data) : []), [data]),
-    calculateDiscountedPrice: useCallback((price: number, offer: any) => calculateDiscountedPrice(price, offer), []),
+    calculateDiscountedPrice: useCallback((price: number, offer: DiscountableOffer) => calculateDiscountedPrice(price, offer), []),
   };
 }
 

@@ -72,13 +72,13 @@ erDiagram
 - **products → inquiries**: one-to-many, nullable FK. An inquiry may or may not originate from a specific product page.
 - **products → visits**: one-to-many, nullable, used for analytics tracking only — not a strict FK constraint since visit rows should still be recorded even if referencing a product loosely.
 
-## Access summary (from PRD §5)
+## Public access summary
 
-| Table | Public read | Public write | Admin |
-|---|---|---|---|
-| products | ✅ (status='published' only) | ❌ | full CRUD |
-| categories | ✅ | ❌ | full CRUD |
-| offers | ✅ | ❌ | full CRUD |
-| discounts | ✅ | ❌ | full CRUD |
-| inquiries | ❌ | ✅ (insert only) | read + status update |
-| visits | ❌ | ✅ (insert only) | read only |
+| Table | Public read | Public write |
+|---|---|---|
+| products | published records only | no |
+| categories | yes | no |
+| offers | active records only | no |
+| discounts | through active offers | no |
+| inquiries | no | insert only |
+| visits | no | insert only |

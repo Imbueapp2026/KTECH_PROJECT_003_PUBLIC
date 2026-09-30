@@ -63,7 +63,7 @@ export async function GET(req: Request) {
     // Transform response to match expected type (categories -> category, offers -> offer)
     const transformedData = data?.map((item: Record<string, unknown>) => {
       const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
-      let offer: any = null;
+      let offer: Record<string, unknown> | null = null;
       
       if (rawOffer && typeof rawOffer === "object") {
         const offerObj = rawOffer as Record<string, unknown>;

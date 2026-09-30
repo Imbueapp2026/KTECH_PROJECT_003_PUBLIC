@@ -17,7 +17,7 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
   const discount = Array.isArray(product.offer?.discount)
     ? product.offer.discount[0]
     : product.offer?.discount || null;
-  const hasOffer = !!(product.offer && discount);
+  const hasOffer = !!product.offer;
   const imageUrl = product.image_urls?.[0] || null;
 
   const calculateFinalPrice = () => {
@@ -64,11 +64,13 @@ export function ProductDetailView({ product, relatedProducts }: ProductDetailVie
                   <span className="text-sm">No image available</span>
                 </div>
               )}
-              {hasOffer && discount && (
+              {hasOffer && (
                 <div className="absolute top-4 right-4 bg-gold text-white px-3 py-1 rounded text-sm font-semibold">
-                  {discount.discount_type === "percentage"
-                    ? `${discount.value}% OFF`
-                    : `₹${discount.value} OFF`}
+                  {discount
+                    ? (discount.discount_type === "percentage"
+                        ? `${discount.value}% OFF`
+                        : `₹${discount.value} OFF`)
+                    : (product.offer?.label || 'Offer')}
                 </div>
               )}
               {product.hallmark_certified && (

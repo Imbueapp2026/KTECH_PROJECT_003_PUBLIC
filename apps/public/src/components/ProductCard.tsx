@@ -17,6 +17,7 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
   const imageUrl = product.image_urls?.[0];
   const hasOffer = !!product.offer && product.offer.is_active;
   const discount = product.offer?.discount;
+  const offerBadgeText = hasOffer ? product.offer?.label : null;
   const isNewProduct = false; // TODO: Implement new product logic based on created_at
 
   const discountedPrice = calculateDiscountedPrice(product.price, product.offer);
@@ -46,9 +47,9 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
             </div>
           )}
 
-          {hasOffer && discount && (
+          {hasOffer && (
             <div className="absolute left-2.5 top-2.5 z-10 rounded-sm bg-dusty-rose px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-white shadow-sm">
-              {discount.discount_type === "percentage" ? `${discount.value}% OFF` : `₹${discount.value} OFF`}
+              {discount ? (discount.discount_type === "percentage" ? `${discount.value}% OFF` : `₹${discount.value} OFF`) : offerBadgeText || 'Offer'}
             </div>
           )}
 

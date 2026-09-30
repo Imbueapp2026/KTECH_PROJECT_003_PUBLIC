@@ -16,7 +16,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@/public': resolve(__dirname, './apps/public/src'),
-      '@/admin': resolve(__dirname, './apps/admin/src'),
       '@': resolve(__dirname, './apps/public/src'),
     },
   },
