@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { formatPrice, formatWeight } from "@/lib/utils";
+import { getOfferPricing } from "@/lib/pricing";
 import { InquiryCTA } from "@/components/InquiryCTA";
 import { ProductCard } from "@/components/ProductCard";
 import type { ProductJoined } from "@/types";
@@ -54,20 +55,10 @@ export function ProductDetailView({ product: initialProduct, relatedProducts: in
   const discount = Array.isArray(product.offer?.discount)
     ? product.offer.discount[0]
     : product.offer?.discount || null;
-  const hasOffer = !!(product.offer && discount);
+  const offerState = getOfferPricing(product, discount);
+  const hasOffer = offerState.hasOffer;
   const imageUrl = product.image_urls?.[0] || null;
-
-  const calculateFinalPrice = () => {
-    if (!hasOffer || !discount) return product.price;
-    
-    if (discount.discount_type === "percentage") {
-      return Math.round(product.price * (1 - discount.value / 100));
-    } else {
-      return Math.max(0, product.price - discount.value);
-    }
-  };
-
-  const finalPrice = calculateFinalPrice();
+  const finalPrice = offerState.finalPrice;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 sm:pt-24 pb-12 sm:pb-16 px-3 sm:px-4 md:px-8">

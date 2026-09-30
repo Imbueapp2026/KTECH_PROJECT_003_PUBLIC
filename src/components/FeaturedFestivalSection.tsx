@@ -43,20 +43,21 @@ export function FeaturedFestivalSection() {
       }
 
       if (!currentFestival) {
-        const bannerRes = await fetch("/api/offer-banners");
-        if (bannerRes.ok) {
-          const bannerData = await bannerRes.json();
-          console.log('[FeaturedFestival] Banner data:', bannerData);
-          const banners = (bannerData.data ?? []).slice(0, 5);
-          console.log('[FeaturedFestival] Banners to display:', banners);
-          // For debugging, show all banners even if not active
-          const activeBanners = banners.filter((b: any) => b._debug?.bannerIsActive && b._debug?.offerCurrentlyActive);
-          console.log('[FeaturedFestival] Active banners (filtered):', activeBanners);
-          // Temporarily show all to debug
+        const offersRes = await fetch("/api/offers", { cache: "no-store" });
+        if (offersRes.ok) {
+          const offersData = await offersRes.json();
+          const banners = Array.isArray(offersData.banners)
+            ? offersData.banners.filter((banner: OfferBanner | null): banner is OfferBanner => {
+                if (!banner || typeof banner !== "object") return false;
+                return typeof banner.image_url === "string" && banner.image_url.trim().length > 0
+                  && typeof banner.alt_text === "string" && banner.alt_text.trim().length > 0;
+              }).slice(0, 5)
+            : [];
           setOfferBanners(banners);
           setActiveBannerIndex(0);
         } else {
-          console.error('[FeaturedFestival] Banner fetch failed:', bannerRes.status);
+          console.error('[FeaturedFestival] Offers fetch failed:', offersRes.status);
+          setOfferBanners([]);
         }
       } else {
         setOfferBanners([]);
@@ -237,6 +238,10 @@ export function FeaturedFestivalSection() {
                         sizes="100vw"
                         aria-hidden="true"
                         className="scale-105 object-cover blur-xl opacity-70"
+                        onError={(event) => {
+                          const target = event.currentTarget as HTMLImageElement;
+                          target.style.display = "none";
+                        }}
                       />
                       <Image
                         src={banner.image_url}
@@ -245,6 +250,10 @@ export function FeaturedFestivalSection() {
                         sizes="100vw"
                         priority={banner.id === offerBanners[activeBannerIndex]?.id}
                         className="object-fill"
+                        onError={(event) => {
+                          const target = event.currentTarget as HTMLImageElement;
+                          target.style.display = "none";
+                        }}
                       />
                     </div>
                   ))}

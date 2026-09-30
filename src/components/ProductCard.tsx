@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice } from "@/lib/utils";
+import { getOfferPricing } from "@/lib/pricing";
 import type { ProductJoined } from "@/types";
 
 interface ProductCardProps {
@@ -13,15 +14,14 @@ interface ProductCardProps {
 export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
   const [isTouching, setIsTouching] = useState(false);
   const imageUrl = product.image_urls?.[0];
-  const hasOffer = !!product.offer && product.offer.is_active;
-  const discount = product.offer?.discount;
+  const discount = Array.isArray(product.offer?.discount)
+    ? product.offer.discount[0]
+    : product.offer?.discount || null;
+  const offerState = getOfferPricing(product, discount);
+  const hasOffer = offerState.hasOffer;
   const isNewProduct = product.is_new === true;
 
-  const discountedPrice = hasOffer && discount
-    ? discount.discount_type === "percentage"
-      ? Math.round(product.price * (1 - discount.value / 100))
-      : Math.max(0, product.price - discount.value)
-    : product.price;
+  const discountedPrice = offerState.finalPrice;
 
   return (
     <Link

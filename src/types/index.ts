@@ -9,7 +9,7 @@ export type ProductStatus = "draft" | "published" | "archived";
 
 export type InquiryStatus = "new" | "contacted" | "resolved";
 
-export type DiscountType = "percentage" | "flat";
+export type DiscountType = "percentage" | "flat" | "making_charge";
 
 export interface Category {
   id: string;
@@ -35,7 +35,20 @@ export interface Offer {
   is_active: boolean;
   start_date: string | null;
   end_date: string | null;
+  charge_type?: string | null;
+  discounts?: Discount[];
   created_at?: string;
+}
+
+export interface OfferBanner {
+  id: string;
+  offer_id: string | null;
+  product_id: string | null;
+  image_url: string | null;
+  alt_text: string | null;
+  is_active?: boolean;
+  display_order?: number | null;
+  updated_at?: string | null;
 }
 
 export interface Festival {
