@@ -1,4 +1,4 @@
-import type { Discount, Offer, OfferBanner } from "@/types";
+import type { Discount, Offer, OfferBanner, OfferWithDiscounts } from "@/types";
 import { getAnonClient } from "@/lib/supabase";
 
 export function isOfferCurrentlyActive(offer: Pick<Offer, "is_active" | "start_date" | "end_date">, now = Date.now()) {
@@ -28,6 +28,31 @@ function normalizeDiscounts(discounts: unknown): Discount[] {
       value,
     }];
   });
+}
+
+export function normalizeProductOffer(relation: unknown, now = Date.now()): OfferWithDiscounts | null {
+  const rawOffer = Array.isArray(relation) ? relation[0] : relation;
+  if (!rawOffer || typeof rawOffer !== "object") return null;
+
+  const candidate = rawOffer as Record<string, unknown>;
+  const id = typeof candidate.id === "string" ? candidate.id : "";
+  const label = typeof candidate.label === "string" ? candidate.label : "";
+  if (!id || !label) return null;
+
+  const discounts = normalizeDiscounts(candidate.discounts);
+  const offer: OfferWithDiscounts = {
+    id,
+    label,
+    description: typeof candidate.description === "string" ? candidate.description : null,
+    is_active: candidate.is_active === true,
+    start_date: typeof candidate.start_date === "string" ? candidate.start_date : null,
+    end_date: typeof candidate.end_date === "string" ? candidate.end_date : null,
+    charge_type: typeof candidate.charge_type === "string" ? candidate.charge_type : null,
+    discounts,
+    discount: discounts[0] ?? null,
+  };
+
+  return isOfferCurrentlyActive(offer, now) ? offer : null;
 }
 
 export async function getActiveOffers(nowIso: string): Promise<Offer[]> {

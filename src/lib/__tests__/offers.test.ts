@@ -7,11 +7,34 @@ vi.mock("@/lib/supabase", () => ({
   getAnonClient: () => mockGetAnonClient(),
 }));
 
-import { getActiveOffers, getVisibleOfferBanners } from "../offers";
+import { getActiveOffers, getVisibleOfferBanners, normalizeProductOffer } from "../offers";
 
 describe("offer helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("normalizes an object-shaped product offer and numeric-string discount", () => {
+    expect(normalizeProductOffer({
+      id: "offer-1",
+      label: "Diwali Sale",
+      is_active: true,
+      start_date: null,
+      end_date: null,
+      discounts: [{ discount_type: "percentage", value: "10" }],
+    }, Date.parse("2026-09-30T00:00:00.000Z"))).toMatchObject({
+      id: "offer-1",
+      discount: { discount_type: "percentage", value: 10 },
+    });
+  });
+
+  it("normalizes array-shaped product offer relations", () => {
+    expect(normalizeProductOffer([{
+      id: "offer-2",
+      label: "Sale",
+      is_active: true,
+      discounts: [],
+    }])).toMatchObject({ id: "offer-2", discount: null });
   });
 
   it("returns active offers only when the dates are valid", async () => {

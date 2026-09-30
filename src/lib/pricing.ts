@@ -1,6 +1,6 @@
 type OfferDiscount = {
   discount_type?: "percentage" | "flat" | "making_charge" | string | null;
-  value?: number | null;
+  value?: number | string | null;
 };
 
 export type OfferPricing = {
@@ -11,24 +11,22 @@ export type OfferPricing = {
   label: string;
 };
 
+function parseFiniteNumber(value: unknown): number | null {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function getOfferPricing(
-  product: { price: number; offer_id?: string | null },
+  product: { price: number | string; offer_id?: string | null },
   discount: OfferDiscount | null | undefined,
 ): OfferPricing {
-  const originalPrice = Number.isFinite(product.price) ? product.price : 0;
+  const originalPrice = parseFiniteNumber(product.price) ?? 0;
+  const value = parseFiniteNumber(discount?.value);
 
-  if (!discount || typeof discount.value !== "number" || !Number.isFinite(discount.value)) {
-    return {
-      originalPrice,
-      finalPrice: originalPrice,
-      discountAmount: 0,
-      hasOffer: false,
-      label: "",
-    };
-  }
-
-  const value = Number(discount.value);
-  if (!Number.isFinite(value)) {
+  if (!discount || value === null) {
     return {
       originalPrice,
       finalPrice: originalPrice,

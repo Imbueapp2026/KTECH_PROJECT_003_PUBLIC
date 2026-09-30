@@ -6,7 +6,7 @@
 import { getAnonClient } from "@/lib/supabase";
 import { badRequest, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
-import { isOfferCurrentlyActive } from "@/lib/offers";
+import { normalizeProductOffer } from "@/lib/offers";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -103,25 +103,7 @@ export async function GET(req: Request) {
 
     // Transform response to match expected type and normalize nested relations.
     const transformedData = data?.map((item: Record<string, unknown>) => {
-      const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
-      console.log('[API Products] Product', item.id, 'raw offer:', rawOffer);
-
-      let processedOffer = null;
-      if (rawOffer && typeof rawOffer === "object") {
-        const offer = rawOffer as Record<string, unknown>;
-        const isActive = isOfferCurrentlyActive({
-          is_active: offer.is_active === true,
-          start_date: typeof offer.start_date === "string" ? offer.start_date : null,
-          end_date: typeof offer.end_date === "string" ? offer.end_date : null,
-        });
-        console.log('[API Products] Product', item.id, 'offer is_active:', offer.is_active, 'currentlyActive:', isActive);
-
-        if (isActive) {
-          const discounts = Array.isArray(offer.discounts) ? offer.discounts : [];
-          console.log('[API Products] Product', item.id, 'discounts:', discounts);
-          processedOffer = { ...offer, discount: discounts[0] ?? null };
-        }
-      }
+      const processedOffer = normalizeProductOffer(item.offers);
 
       return {
         ...item,

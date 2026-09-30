@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAnonClient } from '@/lib/supabase';
+import { normalizeProductOffer } from '@/lib/offers';
 import { ProductDetailView } from './ProductDetailView';
 import type { ProductJoined } from '@/types';
 
@@ -47,15 +48,7 @@ async function getProduct(id: string): Promise<ProductJoined | null> {
   if (error || !data) return null;
 
   const category = Array.isArray(data.categories) ? data.categories[0] : data.categories;
-  const offerRaw = Array.isArray(data.offers) && data.offers.length > 0 ? (data.offers[0] as Record<string, unknown>) : null;
-  let offer = null;
-  if (offerRaw) {
-    const { discounts, ...restOffer } = offerRaw;
-    offer = {
-      ...restOffer,
-      discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
-    };
-  }
+  const offer = normalizeProductOffer(data.offers);
 
   const restData = { ...(data as Record<string, unknown>) };
   delete restData.categories;
@@ -108,15 +101,7 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
 
   return (data || []).map((p) => {
     const category = Array.isArray(p.categories) ? p.categories[0] : p.categories;
-    const offerRaw = Array.isArray(p.offers) && p.offers.length > 0 ? (p.offers[0] as Record<string, unknown>) : null;
-    let offer = null;
-    if (offerRaw) {
-      const { discounts, ...restOffer } = offerRaw;
-      offer = {
-        ...restOffer,
-        discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
-      };
-    }
+    const offer = normalizeProductOffer(p.offers);
     const restData = { ...(p as Record<string, unknown>) };
     delete restData.categories;
     delete restData.offers;
