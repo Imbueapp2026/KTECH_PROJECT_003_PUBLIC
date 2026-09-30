@@ -5,6 +5,8 @@
 import { getAnonClient } from './supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
+let channelCounter = 0;
+
 export type ChangeHandler = (payload: {
   new: Record<string, unknown>;
   old: Record<string, unknown>;
@@ -27,9 +29,10 @@ export function subscribeToProducts(
   onUpdate: ProductChangeHandler
 ): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `products-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('products-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
@@ -74,9 +77,10 @@ export function subscribeToCategoryProducts(
   onUpdate: ProductChangeHandler
 ): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `category-${categoryId}-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel(`category-${categoryId}-changes`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
@@ -117,9 +121,10 @@ export function subscribeToCategoryProducts(
  */
 export function subscribeToOffers(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `offers-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('offers-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'offers' },
@@ -153,9 +158,10 @@ export function subscribeToOffers(onChange: ChangeHandler): RealtimeChannel {
  */
 export function subscribeToOfferBanners(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `offer-banners-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('offer-banners-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'offer_banners' },
@@ -189,9 +195,10 @@ export function subscribeToOfferBanners(onChange: ChangeHandler): RealtimeChanne
  */
 export function subscribeToDiscounts(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `discounts-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('discounts-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'discounts' },
@@ -225,9 +232,10 @@ export function subscribeToDiscounts(onChange: ChangeHandler): RealtimeChannel {
  */
 export function subscribeToFestivals(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `festivals-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('festivals-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'festivals' },
@@ -261,9 +269,10 @@ export function subscribeToFestivals(onChange: ChangeHandler): RealtimeChannel {
  */
 export function subscribeToGoldPrices(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `gold-prices-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('gold-prices-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'gold_prices' },
@@ -292,9 +301,10 @@ export function subscribeToGoldPrices(onChange: ChangeHandler): RealtimeChannel 
  */
 export function subscribeToSilverPrices(onChange: ChangeHandler): RealtimeChannel {
   const supabase = getAnonClient();
+  const channelName = `silver-prices-changes-${++channelCounter}`;
 
   const channel = supabase
-    .channel('silver-prices-changes')
+    .channel(channelName)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'silver_prices' },
