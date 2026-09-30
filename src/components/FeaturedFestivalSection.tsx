@@ -49,6 +49,10 @@ export function FeaturedFestivalSection() {
           console.log('[FeaturedFestival] Banner data:', bannerData);
           const banners = (bannerData.data ?? []).slice(0, 5);
           console.log('[FeaturedFestival] Banners to display:', banners);
+          // For debugging, show all banners even if not active
+          const activeBanners = banners.filter((b: any) => b._debug?.bannerIsActive && b._debug?.offerCurrentlyActive);
+          console.log('[FeaturedFestival] Active banners (filtered):', activeBanners);
+          // Temporarily show all to debug
           setOfferBanners(banners);
           setActiveBannerIndex(0);
         } else {

@@ -8,11 +8,10 @@ export const revalidate = 0;
 export async function GET() {
   const supabase = getAnonClient();
 
-  // Fetch all active banners with their offer data (left join to include banners without offers)
+  // Fetch ALL banners (including inactive ones) for debugging
   const { data, error } = await supabase
     .from("offer_banners")
-    .select("id, offer_id, image_url, alt_text, display_order, product_id, offers(is_active, start_date, end_date)")
-    .eq("is_active", true)
+    .select("id, offer_id, image_url, alt_text, display_order, product_id, is_active, offers(is_active, start_date, end_date)")
     .order("display_order", { ascending: true });
 
   if (error) {
@@ -20,25 +19,39 @@ export async function GET() {
     return serverError(error);
   }
 
-  console.log('[API] Raw banners data:', JSON.stringify(data, null, 2));
+  console.log('[API] All banners in DB:', JSON.stringify(data, null, 2));
 
-  // Filter to only show banners with active offers
-  const activeBanners = (data ?? []).filter((banner) => {
-    // If no offer linked, don't show
-    if (!banner.offer_id) return false;
-
+  // Show all banners for debugging, but mark which are active
+  const allBanners = (data ?? []).map((banner) => {
     const offer = Array.isArray(banner.offers) ? banner.offers[0] : banner.offers;
-    console.log('[API] Banner', banner.id, 'offer:', offer);
+    const hasOffer = !!banner.offer_id;
+    const offerExists = !!offer;
+    const offerIsActive = offerExists && offer.is_active === true;
+    const offerCurrentlyActive = offerIsActive && isOfferCurrentlyActive(offer);
+    const bannerIsActive = banner.is_active === true;
 
-    // If offer doesn't exist or is inactive, don't show
-    if (!offer || !offer.is_active) return false;
+    console.log('[API] Banner', banner.id, {
+      bannerIsActive,
+      hasOffer,
+      offerExists,
+      offerIsActive,
+      offerCurrentlyActive,
+      offerStart: offer?.start_date,
+      offerEnd: offer?.end_date,
+    });
 
-    const isActive = isOfferCurrentlyActive(offer);
-    console.log('[API] Banner', banner.id, 'isCurrentlyActive:', isActive);
-    return isActive;
+    return {
+      ...banner,
+      _debug: {
+        bannerIsActive,
+        hasOffer,
+        offerExists,
+        offerIsActive,
+        offerCurrentlyActive,
+      },
+    };
   });
 
-  console.log('[API] Active banners count:', activeBanners.length);
-
-  return Response.json({ data: activeBanners });
+  // For now, return all banners to debug - filter on client side later
+  return Response.json({ data: allBanners });
 }
