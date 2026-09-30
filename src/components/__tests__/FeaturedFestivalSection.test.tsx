@@ -17,8 +17,9 @@ vi.mock("next/image", () => ({
   ),
 }));
 
-const emptyProductsResponse = {
-  data: [],
+const emptyOffersResponse = {
+  offers: [],
+  banners: [],
 };
 
 describe("FeaturedFestivalSection", () => {
@@ -35,7 +36,7 @@ describe("FeaturedFestivalSection", () => {
   it("shows no offers available when the offers API returns no products", async () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => emptyProductsResponse }));
+      .mockResolvedValueOnce({ ok: true, json: async () => emptyOffersResponse }));
 
     render(<FeaturedFestivalSection />);
     await act(async () => {
@@ -50,7 +51,8 @@ describe("FeaturedFestivalSection", () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({
-        data: [{
+        offers: [{ id: "offer-1", label: "Diwali deal", is_active: true }],
+        banners: [{
           id: "banner-1",
           image_url: "https://example.com/banner.jpg",
           alt_text: "Diwali deal",
@@ -71,7 +73,8 @@ describe("FeaturedFestivalSection", () => {
     vi.stubGlobal("fetch", vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({
-        data: [{
+        offers: [{ id: "offer-1", label: "Diwali deal", is_active: true }],
+        banners: [{
           id: "banner-1",
           image_url: "https://example.com/banner.jpg",
           alt_text: "Diwali deal",
@@ -85,6 +88,35 @@ describe("FeaturedFestivalSection", () => {
     });
 
     expect(screen.getByRole("link", { name: /shop offer/i })).toHaveAttribute("href", "/collections?offers=active&offer_id=offer-1");
+  });
+
+  it("shows the offer banner image alongside an active festival", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        data: {
+          id: "festival-1",
+          name: "Diwali Festival",
+          description: "Festival collection",
+          image_url: "https://example.com/festival.jpg",
+        },
+      }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({
+        offers: [{ id: "offer-1", label: "Diwali deal", is_active: true }],
+        banners: [{
+          id: "banner-1",
+          image_url: "https://example.com/offer-banner.jpg",
+          alt_text: "Diwali offer banner",
+          offer_id: "offer-1",
+        }],
+      }) }));
+
+    render(<FeaturedFestivalSection />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(screen.getByText("Diwali Festival")).toBeInTheDocument();
+    expect(screen.getByAltText("Diwali offer banner")).toHaveAttribute("src", "https://example.com/offer-banner.jpg");
   });
 
   it("shows the fallback CTA when the offers API fails", async () => {

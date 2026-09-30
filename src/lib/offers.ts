@@ -37,10 +37,8 @@ export async function getActiveOffers(nowIso: string): Promise<Offer[]> {
     const supabase = getAnonClient();
     const { data, error } = await supabase
       .from("offers")
-      .select("id,label,description,start_date,end_date,charge_type,discounts(id,discount_type,value)")
-      .eq("is_active", true)
-      .lte("start_date", nowIso)
-      .or(`end_date.is.null,end_date.gt.${nowIso}`);
+      .select("id,label,description,is_active,start_date,end_date,charge_type,discounts(id,discount_type,value)")
+      .eq("is_active", true);
 
     if (error) {
       console.error("[offers] Failed to load active offers:", error);

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mockGetAnonClient = vi.fn();
+const mockOfferSelect = vi.fn();
 
 vi.mock("@/lib/supabase", () => ({
   getAnonClient: () => mockGetAnonClient(),
@@ -14,49 +15,46 @@ describe("offer helpers", () => {
   });
 
   it("returns active offers only when the dates are valid", async () => {
+    mockOfferSelect.mockReturnValue({
+      eq: vi.fn(async () => ({
+        data: [
+          {
+            id: "offer-1",
+            label: "Summer Sale",
+            description: "Save on gold",
+            is_active: true,
+            start_date: "2024-01-01T00:00:00.000Z",
+            end_date: null,
+            charge_type: "percentage",
+            discounts: [{ id: "d-1", discount_type: "percentage", value: 10 }],
+          },
+          {
+            id: "offer-2",
+            label: "Future Offer",
+            description: "Not yet active",
+            is_active: true,
+            start_date: "2099-01-01T00:00:00.000Z",
+            end_date: null,
+            charge_type: "flat",
+            discounts: [],
+          },
+          {
+            id: "offer-3",
+            label: "Inactive Offer",
+            description: "Disabled",
+            is_active: false,
+            start_date: "2024-01-01T00:00:00.000Z",
+            end_date: null,
+            charge_type: "percentage",
+            discounts: [],
+          },
+        ],
+        error: null,
+      })),
+    });
     mockGetAnonClient.mockReturnValue({
       from: vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            lte: vi.fn(() => ({
-              or: vi.fn(async () => ({
-                data: [
-                  {
-                    id: "offer-1",
-                    label: "Summer Sale",
-                    description: "Save on gold",
-                    is_active: true,
-                    start_date: "2024-01-01T00:00:00.000Z",
-                    end_date: null,
-                    charge_type: "percentage",
-                    discounts: [{ id: "d-1", discount_type: "percentage", value: 10 }],
-                  },
-                  {
-                    id: "offer-2",
-                    label: "Future Offer",
-                    description: "Not yet active",
-                    is_active: true,
-                    start_date: "2099-01-01T00:00:00.000Z",
-                    end_date: null,
-                    charge_type: "flat",
-                    discounts: [],
-                  },
-                  {
-                    id: "offer-3",
-                    label: "Inactive Offer",
-                    description: "Disabled",
-                    is_active: false,
-                    start_date: "2024-01-01T00:00:00.000Z",
-                    end_date: null,
-                    charge_type: "percentage",
-                    discounts: [],
-                  },
-                ],
-                error: null,
-              })),
-            })),
-          })),
-        })),
+        select: mockOfferSelect,
       })),
     });
 
@@ -64,6 +62,31 @@ describe("offer helpers", () => {
 
     expect(offers).toHaveLength(1);
     expect(offers[0]).toMatchObject({ id: "offer-1", label: "Summer Sale" });
+    expect(mockOfferSelect).toHaveBeenCalledWith(expect.stringContaining("is_active"));
+  });
+
+  it("includes active offers without a start date", async () => {
+    mockGetAnonClient.mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(async () => ({
+            data: [{
+              id: "offer-no-start",
+              label: "Always Available",
+              is_active: true,
+              start_date: null,
+              end_date: null,
+              discounts: [],
+            }],
+            error: null,
+          })),
+        })),
+      })),
+    });
+
+    await expect(getActiveOffers("2024-06-01T00:00:00.000Z")).resolves.toMatchObject([
+      { id: "offer-no-start", label: "Always Available" },
+    ]);
   });
 
   it("filters malformed banners and respects display order", async () => {
@@ -100,11 +123,7 @@ describe("offer helpers", () => {
     mockGetAnonClient.mockReturnValue({
       from: vi.fn(() => ({
         select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            lte: vi.fn(() => ({
-              or: vi.fn(async () => ({ data: null, error: new Error("db offline") })),
-            })),
-          })),
+          eq: vi.fn(async () => ({ data: null, error: new Error("db offline") })),
         })),
       })),
     });

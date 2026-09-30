@@ -42,25 +42,22 @@ export function FeaturedFestivalSection() {
         setActiveFestival(currentFestival);
       }
 
-      if (!currentFestival) {
-        const offersRes = await fetch("/api/offers", { cache: "no-store" });
-        if (offersRes.ok) {
-          const offersData = await offersRes.json();
-          const banners = Array.isArray(offersData.banners)
-            ? offersData.banners.filter((banner: OfferBanner | null): banner is OfferBanner => {
-                if (!banner || typeof banner !== "object") return false;
-                return typeof banner.image_url === "string" && banner.image_url.trim().length > 0
-                  && typeof banner.alt_text === "string" && banner.alt_text.trim().length > 0;
-              }).slice(0, 5)
-            : [];
-          setOfferBanners(banners);
-          setActiveBannerIndex(0);
-        } else {
-          console.error('[FeaturedFestival] Offers fetch failed:', offersRes.status);
-          setOfferBanners([]);
-        }
+      const offersRes = await fetch("/api/offers", { cache: "no-store" });
+      if (offersRes.ok) {
+        const offersData = await offersRes.json();
+        const banners = Array.isArray(offersData.banners)
+          ? offersData.banners.filter((banner: OfferBanner | null): banner is OfferBanner => {
+              if (!banner || typeof banner !== "object") return false;
+              return typeof banner.image_url === "string" && banner.image_url.trim().length > 0
+                && typeof banner.alt_text === "string" && banner.alt_text.trim().length > 0;
+            }).slice(0, 5)
+          : [];
+        setOfferBanners(banners);
+        setActiveBannerIndex(0);
       } else {
+        console.error('[FeaturedFestival] Offers fetch failed:', offersRes.status);
         setOfferBanners([]);
+        setFetchError(true);
       }
     } catch (error) {
       console.warn("[FeaturedFestival] Failed to fetch festival data:", error);
@@ -78,12 +75,12 @@ export function FeaturedFestivalSection() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (activeFestival || offerBanners.length < 2 || isCarouselPaused) return;
+    if (offerBanners.length < 2 || isCarouselPaused) return;
     const interval = setInterval(() => {
       setActiveBannerIndex((index) => (index + 1) % offerBanners.length);
     }, OFFER_CAROUSEL_AUTO_ADVANCE_MS);
     return () => clearInterval(interval);
-  }, [activeFestival, offerBanners.length, isCarouselPaused]);
+  }, [offerBanners.length, isCarouselPaused]);
 
   useEffect(() => {
     return () => {
@@ -172,7 +169,7 @@ export function FeaturedFestivalSection() {
     <section className="bg-[#FBFAF8] py-10 sm:py-14 overflow-hidden">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Festival Banner Header */}
-        {activeFestival ? (
+        {activeFestival && (
           <div className="mb-10 overflow-hidden rounded-2xl shadow-lg">
             <div
               className="relative aspect-[4/5] sm:aspect-[16/7] min-h-[420px] sm:min-h-[220px] sm:max-h-[420px] w-full overflow-hidden"
@@ -202,7 +199,8 @@ export function FeaturedFestivalSection() {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+        {(!activeFestival || offerBanners.length > 0 || fetchError) && (
           <div className="mb-8 sm:mb-10">
             <div className="mb-4 flex items-end justify-between gap-4 px-1 sm:mb-6 sm:px-0">
               <div>
