@@ -10,6 +10,7 @@ export type ProductStatus = "draft" | "published" | "archived";
 export type InquiryStatus = "new" | "contacted" | "resolved";
 
 export type DiscountType = "percentage" | "flat" | "making_charge";
+export type OfferDiscountType = "flat" | "percentage" | "making_charge" | "mixed";
 
 export interface Category {
   id: string;
@@ -73,6 +74,9 @@ export interface Product {
   availability: Availability;
   price: number;
   offer_id: string | null;
+  offer_price?: number | string | null;
+  offer_discount_amount?: number | string | null;
+  offer_discount_type?: OfferDiscountType | null;
   is_new?: boolean;
   status: ProductStatus;
   image_urls: string[];
