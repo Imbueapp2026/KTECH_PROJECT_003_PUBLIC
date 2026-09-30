@@ -17,7 +17,7 @@ export function ProductCard({ product, touchZoom = false }: ProductCardProps) {
   const imageUrl = product.image_urls?.[0];
   const hasOffer = !!product.offer && product.offer.is_active;
   const discount = product.offer?.discount;
-  const isNewProduct = product.is_new === true;
+  const isNewProduct = false; // TODO: Implement new product logic based on created_at
 
   const discountedPrice = calculateDiscountedPrice(product.price, product.offer);
 

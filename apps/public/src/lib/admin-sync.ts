@@ -78,8 +78,8 @@ export interface SiteData {
 
 // Cache
 let cachedData: SiteData | null = null;
-let subscribers: Set<(data: SiteData) => void> = new Set();
-let realtimeChannels: any[] = [];
+const subscribers: Set<(data: SiteData) => void> = new Set();
+let realtimeChannels: unknown[] = [];
 
 /**
  * Fetch all banner data (products and categories) from admin
@@ -141,7 +141,7 @@ async function fetchOffers(): Promise<OfferData[]> {
     throw error;
   }
 
-  return (data || []).map((offer: any) => ({
+  return (data || []).map((offer: { discounts: unknown }) => ({
     ...offer,
     discount: Array.isArray(offer.discounts) ? offer.discounts[0] : null,
   }));
@@ -338,7 +338,24 @@ export function setupRealtimeSync(): () => void {
     )
     .subscribe();
 
-  realtimeChannels = [productsChannel, offersChannel, categoriesChannel];
+  // Subscribe to offer_banners changes
+  const offerBannersChannel = supabase
+    .channel("offer-banners-changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "offer_banners",
+      },
+      async () => {
+        console.log("[AdminSync] Offer banners changed, refreshing data...");
+        await fetchAllSiteData();
+      }
+    )
+    .subscribe();
+
+  realtimeChannels = [productsChannel, offersChannel, categoriesChannel, offerBannersChannel];
 
   // Return cleanup function
   return () => {

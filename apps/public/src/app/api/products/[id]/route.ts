@@ -5,6 +5,7 @@
 import { getAnonClient } from "@/lib/supabase";
 import { notFound, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
+import { isOfferCurrentlyActive } from "@/lib/offers";
 
 export async function GET(
   req: Request,
@@ -67,10 +68,17 @@ export async function GET(
     let offer = null;
     if (offerRaw) {
       const { discounts, ...restOffer } = offerRaw;
-      offer = {
-        ...restOffer,
-        discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
-      };
+      // Only include offer if it's currently active
+      if (isOfferCurrentlyActive({
+        is_active: restOffer.is_active === true,
+        start_date: typeof restOffer.start_date === "string" ? restOffer.start_date : null,
+        end_date: typeof restOffer.end_date === "string" ? restOffer.end_date : null,
+      })) {
+        offer = {
+          ...restOffer,
+          discount: Array.isArray(discounts) && discounts.length > 0 ? discounts[0] : null
+        };
+      }
     }
 
     const { categories: _categories, offers: _offers, ...restData } = data as Record<string, unknown>;

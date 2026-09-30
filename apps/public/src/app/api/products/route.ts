@@ -6,6 +6,7 @@
 import { getAnonClient } from "@/lib/supabase";
 import { badRequest, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
+import { isOfferCurrentlyActive } from "@/lib/offers";
 
 export async function GET(req: Request) {
   // Handle preflight request
@@ -52,7 +53,8 @@ export async function GET(req: Request) {
         purity_carats,
         created_at,
         updated_at,
-        categories (id, name, slug, icon_svg)
+        categories (id, name, slug, icon_svg),
+        offers(id, label, description, is_active, start_date, end_date, discounts(id, discount_type, value))
       `)
       .eq("status", "published")
       .neq("availability", "sold");
@@ -80,12 +82,34 @@ export async function GET(req: Request) {
       return serverError("Failed to fetch products");
     }
 
-    // Transform response to match expected type (categories -> category)
-    const transformedData = data?.map((item: Record<string, unknown>) => ({
-      ...item,
-      category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
-      categories: undefined,
-    })) || [];
+    // Transform response to match expected type (categories -> category, offers -> offer)
+    const transformedData = data?.map((item: Record<string, unknown>) => {
+      const rawOffer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+      let offer = null;
+      
+      if (rawOffer && typeof rawOffer === "object") {
+        const offerObj = rawOffer as Record<string, unknown>;
+        if (isOfferCurrentlyActive({
+          is_active: offerObj.is_active === true,
+          start_date: typeof offerObj.start_date === "string" ? offerObj.start_date : null,
+          end_date: typeof offerObj.end_date === "string" ? offerObj.end_date : null,
+        })) {
+          const discounts = Array.isArray(offerObj.discounts) ? offerObj.discounts : [];
+          offer = {
+            ...offerObj,
+            discount: discounts[0] || null,
+          };
+        }
+      }
+      
+      return {
+        ...item,
+        category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
+        offer,
+        categories: undefined,
+        offers: undefined,
+      };
+    }) || [];
 
     // Get total count for pagination
     let countQuery = supabase

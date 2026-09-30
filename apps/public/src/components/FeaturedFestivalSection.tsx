@@ -4,14 +4,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import type { Festival } from "@/types";
-import { useAdminData } from "@/hooks/useAdminData";
+import { getAnonClient } from "@/lib/supabase";
 
 type OfferBanner = {
   id: string;
   image_url: string;
   alt_text: string;
-  offer_id?: string | null;
-  product_id?: string | null;
+  offer_id: string;
+  product_id: string | null;
+  label?: string | undefined;
+  description?: string | null | undefined;
 };
 
 const OFFER_CAROUSEL_AUTO_ADVANCE_MS = 5000;
@@ -25,9 +27,8 @@ export function FeaturedFestivalSection() {
   const touchStartXRef = useRef<number | null>(null);
   const pointerStartXRef = useRef<number | null>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data: adminData, loading: adminLoading } = useAdminData({ realtime: true });
 
-  // Fetch festival and products data
+  // Fetch festival and offer banners data
   const fetchData = useCallback(async () => {
     setFetchError(false);
     try {
@@ -42,29 +43,28 @@ export function FeaturedFestivalSection() {
       }
 
       if (!currentFestival) {
-        // Use admin sync data for banners if available, otherwise fallback to API
-        if (adminData?.banners.products && adminData.banners.products.length > 0) {
-          const limitedProducts = adminData.banners.products
-            .filter(p => p.is_limited && p.status === "published" && p.availability !== "sold")
-            .slice(0, 5);
+        // Fetch offer banners from API
+        const bannerRes = await fetch("/api/offer-banners");
+        if (bannerRes.ok) {
+          const bannerData = await bannerRes.json();
+          const banners = (bannerData.banners ?? []).slice(0, 5);
+          const offersMap = new Map<string, { label: string; description: string | null }>(
+            (bannerData.offers ?? []).map((o: { id: string; label: string; description: string | null }) => [o.id, o])
+          );
           
-          const bannersFromAdmin: OfferBanner[] = limitedProducts.map(p => ({
-            id: p.id,
-            image_url: p.image_urls?.[0] || "",
-            alt_text: p.name,
-            offer_id: null,
-            product_id: p.id,
-          }));
+          const bannersWithOfferInfo: OfferBanner[] = banners.map((b: OfferBanner) => {
+            const offerInfo = offersMap.get(b.offer_id);
+            return {
+              ...b,
+              label: offerInfo?.label,
+              description: offerInfo?.description,
+            };
+          });
           
-          setOfferBanners(bannersFromAdmin);
+          setOfferBanners(bannersWithOfferInfo);
           setActiveBannerIndex(0);
         } else {
-          const bannerRes = await fetch("/api/offer-banners");
-          if (bannerRes.ok) {
-            const bannerData = await bannerRes.json();
-            setOfferBanners((bannerData.data ?? []).slice(0, 5));
-            setActiveBannerIndex(0);
-          }
+          setOfferBanners([]);
         }
       } else {
         setOfferBanners([]);
@@ -75,7 +75,7 @@ export function FeaturedFestivalSection() {
       setActiveBannerIndex(0);
       setFetchError(true);
     }
-  }, [adminData]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,13 +83,6 @@ export function FeaturedFestivalSection() {
     }, 0);
     return () => clearTimeout(timer);
   }, [fetchData]);
-
-  // Refresh when admin data changes
-  useEffect(() => {
-    if (adminData && !adminLoading) {
-      void fetchData();
-    }
-  }, [adminData, adminLoading, fetchData]);
 
   useEffect(() => {
     if (activeFestival || offerBanners.length < 2 || isCarouselPaused) return;
@@ -174,6 +167,50 @@ export function FeaturedFestivalSection() {
     }, 10000); // Check every 10 seconds for new festivals/offers
 
     return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // Realtime subscription for offer_banners, offers, and discounts
+  useEffect(() => {
+    const supabase = getAnonClient();
+    
+    const offersChannel = supabase
+      .channel('offers-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'offers',
+      }, () => {
+        void fetchData();
+      })
+      .subscribe();
+
+    const offerBannersChannel = supabase
+      .channel('offer-banners-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'offer_banners',
+      }, () => {
+        void fetchData();
+      })
+      .subscribe();
+
+    const discountsChannel = supabase
+      .channel('discounts-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'discounts',
+      }, () => {
+        void fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(offersChannel);
+      supabase.removeChannel(offerBannersChannel);
+      supabase.removeChannel(discountsChannel);
+    };
   }, [fetchData]);
 
   return (
@@ -279,19 +316,23 @@ export function FeaturedFestivalSection() {
               <Link
                 href={
                   offerBanners[activeBannerIndex]
-                    ? `/collections?offers=active${offerBanners[activeBannerIndex].offer_id ? `&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}` : ""}`
+                    ? offerBanners[activeBannerIndex].product_id
+                      ? `/products/${offerBanners[activeBannerIndex].product_id}`
+                      : `/collections?offers=active&offer_id=${encodeURIComponent(offerBanners[activeBannerIndex].offer_id)}`
                     : "/collections?offers=active"
                 }
                 className="absolute inset-0 z-10 flex flex-col justify-end p-5 pb-7 focus-visible:outline-none sm:p-10 sm:pb-10"
               >
                 <div>
-                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">Special Offers</span>
+                  {offerBanners[activeBannerIndex]?.label && (
+                    <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#E6C98F]">
+                      {offerBanners[activeBannerIndex].label}
+                    </span>
+                  )}
                   <p className="max-w-xl text-sm font-light text-white/90 sm:text-base">
                     {fetchError
                       ? "We couldn't load our offers right now"
-                      : offerBanners.length > 0
-                      ? "Explore exclusive pieces with special pricing"
-                      : "No offers available"}
+                      : offerBanners[activeBannerIndex]?.description || "Explore exclusive pieces with special pricing"}
                   </p>
                   <span className="mt-4 inline-flex border-b border-white/80 pb-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">Shop offer</span>
                 </div>
