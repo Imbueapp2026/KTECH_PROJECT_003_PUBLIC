@@ -48,10 +48,26 @@ describe('ProductCard Component', () => {
     expect(screen.getByText('No Image')).toBeInTheDocument();
   });
 
+  it('hides the New badge after five days without affecting Hallmark', () => {
+    const olderProduct: ProductJoined = {
+      ...mockProduct,
+      created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    render(<ProductCard product={olderProduct} />);
+
+    expect(screen.queryByText('New')).not.toBeInTheDocument();
+    expect(screen.getByText('Hallmark')).toBeInTheDocument();
+  });
+
   it('renders discounted price and percentage offer badge', () => {
     const productWithOffer: ProductJoined = {
       ...mockProduct,
       price: 100000,
+      offer_id: 'off-1',
+      offer_price: 90000,
+      offer_discount_amount: 10000,
+      offer_discount_type: 'percentage',
       offer: {
         id: 'off-1',
         label: 'Diwali Dhamaka',
@@ -70,13 +86,58 @@ describe('ProductCard Component', () => {
     render(<ProductCard product={productWithOffer} />);
 
     // Offer badge
-    expect(screen.getByText('10% OFF')).toBeInTheDocument();
+    expect(screen.getByText('₹10,000 OFF')).toBeInTheDocument();
+    expect(screen.getByText('Percentage offer')).toBeInTheDocument();
 
     // Original crossed-out price
     expect(screen.getByText(/₹\s?1,00,000/)).toBeInTheDocument();
 
     // Discounted price: 100,000 - 10% = 90,000
     expect(screen.getByText(/₹\s?90,000/)).toBeInTheDocument();
+  });
+
+  it('keeps Hallmark, New, and Offer in separate reserved rows', () => {
+    const productWithAllTags: ProductJoined = {
+      ...mockProduct,
+      offer_id: 'off-1',
+      offer_price: 80000,
+      offer_discount_amount: 5000,
+      offer_discount_type: 'making_charge',
+    };
+
+    const { container } = render(<ProductCard product={productWithAllTags} />);
+    const card = container.querySelector('a > div');
+    const tagRow = card?.children[0];
+    const imageFrame = card?.children[1];
+    const offerStrip = card?.children[2];
+
+    expect(tagRow).toHaveClass('flex-wrap', 'min-h-7');
+    expect(tagRow).toContainElement(screen.getByText('Hallmark'));
+    expect(tagRow).toContainElement(screen.getByText('New'));
+    expect(screen.getByText('Hallmark')).toHaveClass('bg-gold', 'text-charcoal');
+    expect(screen.getByText('New')).toHaveClass('bg-dustyRose', 'text-charcoal');
+    expect(imageFrame).toContainElement(screen.getByRole('img'));
+    expect(imageFrame).not.toContainElement(screen.getByText('Hallmark'));
+    expect(offerStrip).toHaveClass('offer-strip', 'min-h-9', 'bg-charcoal', 'text-white');
+    expect(offerStrip).toContainElement(screen.getByText('₹5,000 OFF'));
+    expect(offerStrip).toContainElement(screen.getByText('Making charge offer'));
+  });
+
+  it('keeps the tag row compact and collapses the offer strip when there are no tags or offer', () => {
+    const untaggedProduct: ProductJoined = {
+      ...mockProduct,
+      hallmark_certified: false,
+      created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    const { container } = render(<ProductCard product={untaggedProduct} />);
+    const card = container.querySelector('a > div');
+
+    expect(card?.children[0]).toHaveClass('min-h-7');
+    expect(card?.children[0].children).toHaveLength(0);
+    expect(card?.querySelector('.offer-strip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hallmark')).not.toBeInTheDocument();
+    expect(screen.queryByText('New')).not.toBeInTheDocument();
   });
 
   it('renders a truncated description in the catalog card without adding an inline expand control', () => {

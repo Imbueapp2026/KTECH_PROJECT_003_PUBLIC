@@ -5,6 +5,7 @@
 import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
+import { isNewArrival } from "@/lib/utils";
 
 export async function GET(req: Request) {
   // Handle preflight request
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
     // Get latest products (top 3)
     const { data: latestProducts } = await supabase
       .from("products")
-      .select("id, name, image_urls, price, category_id")
+      .select("id, name, image_urls, price, category_id, created_at")
       .eq("status", "published")
       .neq("availability", "sold")
       .order("created_at", { ascending: false })
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
           title: product.name,
           imageUrl: product.image_urls?.[0] || null,
           linkUrl: `/products/${product.id}`,
-          badge: "New",
+          ...(isNewArrival(product.created_at) ? { badge: "New" } : {}),
           data: product
         });
       });
@@ -85,7 +86,7 @@ export async function GET(req: Request) {
     }
 
     const response = Response.json({ items: items.slice(0, 7) }, {
-      headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=600' }
+      headers: { 'Cache-Control': 'no-store' }
     });
     return withCors(response, req, { origin: '*' });
   } catch (err) {

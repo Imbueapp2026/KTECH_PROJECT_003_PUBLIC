@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { NewArrivalsStrip } from "../NewArrivalsStrip";
 import type { ProductJoined } from "@/types";
 
-function createProduct(id: string, createdDaysAgo: number, isNew: boolean): ProductJoined {
+function createProduct(id: string, createdDaysAgo: number): ProductJoined {
   const createdAt = new Date(Date.now() - createdDaysAgo * 24 * 60 * 60 * 1000).toISOString();
 
   return {
@@ -20,17 +20,16 @@ function createProduct(id: string, createdDaysAgo: number, isNew: boolean): Prod
     updated_at: createdAt,
     image_urls: [],
     hallmark_certified: true,
-    is_new: isNew,
   };
 }
 
 describe("NewArrivalsStrip", () => {
-  it("moves older new arrivals into Recently Added and drops its oldest products", () => {
+  it("shows only products within the five-day window, newest first", () => {
     const newArrivals = Array.from({ length: 9 }, (_, index) =>
-      createProduct(`new-${index}`, index, true),
+      createProduct(`new-${index}`, index * 0.5),
     );
     const recentlyAdded = Array.from({ length: 9 }, (_, index) =>
-      createProduct(`recent-${index}`, 40 + index, false),
+      createProduct(`recent-${index}`, 10 + index),
     );
 
     render(<NewArrivalsStrip products={[...newArrivals, ...recentlyAdded]} />);
@@ -39,9 +38,7 @@ describe("NewArrivalsStrip", () => {
       expect(screen.getByText(`new-${index}`)).toBeInTheDocument();
     }
     expect(screen.getByText("new-8")).toBeInTheDocument();
-    expect(screen.getByText("recent-0")).toBeInTheDocument();
-    expect(screen.getByText("recent-6")).toBeInTheDocument();
-    expect(screen.queryByText("recent-7")).not.toBeInTheDocument();
+    expect(screen.queryByText("recent-0")).not.toBeInTheDocument();
     expect(screen.queryByText("recent-8")).not.toBeInTheDocument();
   });
 });

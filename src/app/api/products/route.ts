@@ -7,6 +7,7 @@ import { getAnonClient } from "@/lib/supabase";
 import { badRequest, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
 import { normalizeProductOffer } from "@/lib/offers";
+import { NEW_ARRIVAL_DAYS } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -85,10 +86,12 @@ export async function GET(req: Request) {
       query = query.lt("price", maxPrice);
     }
 
+    const newArrivalNow = Date.now();
+    const newArrivalCutoff = new Date(newArrivalNow - NEW_ARRIVAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
     // Apply new-product filter based on the database timestamp.
     if (new_only) {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte("created_at", thirtyDaysAgo);
+      query = query.gte("created_at", newArrivalCutoff).lte("created_at", new Date(newArrivalNow).toISOString());
     }
 
     // Apply sorting
@@ -110,8 +113,6 @@ export async function GET(req: Request) {
 
       return {
         ...item,
-        is_new: typeof item.created_at === "string"
-          && Date.now() - new Date(item.created_at).getTime() <= 30 * 24 * 60 * 60 * 1000,
         category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
         offer: processedOffer,
         categories: undefined,
@@ -142,8 +143,7 @@ export async function GET(req: Request) {
     }
 
     if (new_only) {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      countQuery = countQuery.gte("created_at", thirtyDaysAgo);
+      countQuery = countQuery.gte("created_at", newArrivalCutoff).lte("created_at", new Date(newArrivalNow).toISOString());
     }
 
     const { count: totalCount } = await countQuery;

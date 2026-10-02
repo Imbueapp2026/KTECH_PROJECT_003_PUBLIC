@@ -1,6 +1,7 @@
 "use client";
 
 import { ProductCard } from "./ProductCard";
+import { isNewArrival } from "@/lib/utils";
 import type { ProductJoined } from "@/types";
 
 interface NewArrivalsStripProps {
@@ -11,14 +12,9 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
   const publishedProducts = products
     .filter((p) => p.status === "published" && !p.festival_id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  const newArrivalProducts = publishedProducts.filter((product) => product.is_new);
+  const newArrivalProducts = publishedProducts.filter((product) => isNewArrival(product.created_at));
   const newProducts = newArrivalProducts.slice(0, 8);
-  const recentlyAddedProducts = [
-    ...newArrivalProducts.slice(8),
-    ...publishedProducts.filter((product) => !product.is_new),
-  ]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 8);
+  const recentlyAddedProducts = newArrivalProducts.slice(8, 16);
 
   if (newProducts.length === 0 && recentlyAddedProducts.length === 0) {
     return (
