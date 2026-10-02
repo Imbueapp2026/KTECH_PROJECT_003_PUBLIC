@@ -43,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
               width={500}
               height={500}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="h-full w-full object-contain p-[12%]"
+              className="h-full w-full object-contain p-0"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-charcoal/40 text-xs">
@@ -53,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {hasOfferLabel && (
-          <div className="offer-strip flex min-h-9 items-center justify-center bg-charcoal px-2 py-1 text-center text-white">
+          <div className="offer-strip flex min-h-9 items-center justify-center bg-[#8A5A61] px-2 py-1 text-center text-white">
             <span className="flex w-full min-w-0 flex-col items-center break-words text-[10px] font-semibold leading-[14px] tracking-normal">
               <span className="w-full">{formatStoredRupees(product.offer_discount_amount!)} OFF</span>
               {discountTypeLabel && <span className="w-full">{discountTypeLabel}</span>}
