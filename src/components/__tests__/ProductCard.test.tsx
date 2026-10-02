@@ -117,8 +117,9 @@ describe('ProductCard Component', () => {
     expect(screen.getByText('Hallmark')).toHaveClass('bg-gold', 'text-charcoal');
     expect(screen.getByText('New')).toHaveClass('bg-dustyRose', 'text-charcoal');
     expect(imageFrame).toContainElement(screen.getByRole('img'));
+    expect(screen.getByRole('img')).toHaveClass('object-contain', 'p-0');
     expect(imageFrame).not.toContainElement(screen.getByText('Hallmark'));
-    expect(offerStrip).toHaveClass('offer-strip', 'min-h-9', 'bg-charcoal', 'text-white');
+    expect(offerStrip).toHaveClass('offer-strip', 'min-h-9', 'bg-[#8A5A61]', 'text-white');
     expect(offerStrip).toContainElement(screen.getByText('₹5,000 OFF'));
     expect(offerStrip).toContainElement(screen.getByText('Making charge offer'));
   });
