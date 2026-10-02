@@ -77,7 +77,6 @@ export interface Product {
   offer_price?: number | string | null;
   offer_discount_amount?: number | string | null;
   offer_discount_type?: OfferDiscountType | null;
-  is_new?: boolean;
   status: ProductStatus;
   image_urls: string[];
   created_at: string;
