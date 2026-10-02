@@ -14,7 +14,7 @@ function selectCategoryDiverseProducts(products: ProductJoined[], limit: number)
   const selectedCategories = new Set<string>();
 
   for (const product of products) {
-    const categoryKey = product.category?.slug || product.category_id;
+    const categoryKey = product.category_id || product.category?.id || product.category?.slug || product.id;
     if (selectedCategories.has(categoryKey)) continue;
 
     selected.push(product);
@@ -40,8 +40,10 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
     .filter((p) => p.status === "published" && !p.festival_id)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   const newArrivalProducts = publishedProducts.filter((product) => isNewArrival(product.created_at));
-  const newProducts = newArrivalProducts.slice(0, 8);
-  const recentlyAddedProducts = selectCategoryDiverseProducts(newArrivalProducts.slice(8), 8);
+  const newProducts = selectCategoryDiverseProducts(newArrivalProducts, 8);
+  const newProductIds = new Set(newProducts.map((product) => product.id));
+  const remainingNewArrivals = newArrivalProducts.filter((product) => !newProductIds.has(product.id));
+  const recentlyAddedProducts = selectCategoryDiverseProducts(remainingNewArrivals, 8);
 
   if (newProducts.length === 0 && recentlyAddedProducts.length === 0) {
     return (
