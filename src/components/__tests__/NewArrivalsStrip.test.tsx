@@ -16,7 +16,6 @@ function createProduct(
     name: id,
     description: "",
     price: 100,
-    category_id: "category-1",
     category_id: `category-${categorySlug}`,
     category: { id: `category-${categorySlug}`, name: categoryName, slug: categorySlug },
     availability: "available",
@@ -48,7 +47,7 @@ describe("NewArrivalsStrip", () => {
     expect(screen.queryByText("recent-8")).not.toBeInTheDocument();
   });
 
-  it("prioritizes different categories in Recently Added and keeps chosen products newest first", () => {
+  it("balances categories in both arrival groups without duplicating products", () => {
     const newestProducts = Array.from({ length: 8 }, (_, index) =>
       createProduct(`latest-${index}`, index * 0.1),
     );
@@ -67,11 +66,24 @@ describe("NewArrivalsStrip", () => {
     const recentHeading = screen.getByRole("heading", { name: "Recently Added" });
     const recentGrid = recentHeading.parentElement?.parentElement?.nextElementSibling;
     const recentLinks = Array.from(recentGrid?.querySelectorAll("a") || []);
+    const newArrivalGrid = screen.getByRole("heading", { name: "New Arrivals" })
+      .parentElement?.parentElement?.nextElementSibling;
+    const newArrivalLinks = Array.from(newArrivalGrid?.querySelectorAll("a") || []);
+    const categoryByProductId = new Map(
+      [...newestProducts, ...variedRecentProducts].map((product) => [product.id, product.category?.slug]),
+    );
+    const createdAtByProductId = new Map(
+      [...newestProducts, ...variedRecentProducts].map((product) => [product.id, product.created_at]),
+    );
+    const recentlyAddedIds = recentLinks.map((link) => link.getAttribute("href")?.split("/").pop() || "");
+    const newArrivalIds = newArrivalLinks.map((link) => link.getAttribute("href")?.split("/").pop() || "");
+    const recentlyAddedCategories = recentlyAddedIds.map((id) => categoryByProductId.get(id));
 
     expect(recentLinks).toHaveLength(8);
-    expect(recentLinks.map((link) => link.getAttribute("href"))).toEqual(
-      ["varied-0", "varied-2", "varied-4", "varied-6", "varied-8", "varied-10", "varied-12", "varied-14"]
-        .map((productId) => `/products/${productId}`),
-    );
+    expect(newArrivalLinks).toHaveLength(8);
+    expect(new Set(recentlyAddedCategories).size).toBe(8);
+    expect(newArrivalIds.some((id) => recentlyAddedIds.includes(id))).toBe(false);
+    const recentlyAddedTimestamps = recentlyAddedIds.map((id) => Date.parse(createdAtByProductId.get(id) || ""));
+    expect(recentlyAddedTimestamps).toEqual([...recentlyAddedTimestamps].sort((a, b) => b - a));
   });
 });
