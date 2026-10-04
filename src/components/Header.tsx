@@ -59,7 +59,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo/Brand */}
-          <Link href="/" className="flex items-center min-h-[44px]">
+          <Link href="/" className="flex min-h-[44px] items-center gap-2">
             <div className="relative w-12 h-12 sm:w-16 sm:h-16">
               <Image
                 src="/logo.png"
@@ -69,6 +69,9 @@ export function Header() {
                 priority
               />
             </div>
+            <span className={`whitespace-nowrap font-serif text-sm font-semibold sm:text-base ${isSolidStyle ? "text-charcoal" : "text-white"}`}>
+              Avirat Jewelers
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
