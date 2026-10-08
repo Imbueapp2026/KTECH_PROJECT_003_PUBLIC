@@ -20,7 +20,7 @@ describe("ShopByPrice", () => {
     vi.restoreAllMocks();
   });
 
-  it("shows a 60,000+ card in the shop-by-price section without changing the filter bar", async () => {
+  it("adds a separate 60,000+ card without changing the existing price ranges", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -52,6 +52,7 @@ describe("ShopByPrice", () => {
     render(<ShopByPrice />);
 
     expect(await screen.findByText("₹60,000+")).toBeInTheDocument();
-    expect(screen.queryByText("₹50,000–₹60,000")).not.toBeInTheDocument();
+    expect(screen.getByText("Under ₹50,000")).toBeInTheDocument();
+    expect(screen.getByText("₹50,000–₹60,000")).toBeInTheDocument();
   });
 });
