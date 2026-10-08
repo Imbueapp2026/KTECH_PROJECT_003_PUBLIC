@@ -53,7 +53,7 @@ export function ProductCard({ product, showNewBadge = false }: ProductCardProps)
               src={imageUrl}
               alt={product.name}
               fill
-              sizes="(max-width: 768px) 100vw, 50vw"
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 25vw, 16vw"
               className="h-full w-full object-contain p-0"
             />
           ) : (
