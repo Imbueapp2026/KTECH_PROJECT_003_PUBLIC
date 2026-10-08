@@ -26,7 +26,7 @@ function createProducts(count: number, createdAt = "2026-10-08T12:00:00.000Z"): 
 }
 
 describe("partitionArrivals", () => {
-  it.each([0, 5, 8, 9, 32, 33, 40])("partitions %i products without overlap", (count) => {
+  it.each([0, 5, 8, 9, 16, 17, 40])("partitions %i products without overlap", (count) => {
     const products = createProducts(count);
     const { newArrivals, recentlyArrived } = partitionArrivals(products, ARRIVALS_CONFIG);
     const combinedIds = [...newArrivals, ...recentlyArrived].map((product) => product.id);
@@ -60,11 +60,11 @@ describe("partitionArrivals", () => {
     expect(recentlyArrived.map((product) => product.id)).toEqual(["product-009"]);
   });
 
-  it("drops products older than the 32-product stack", () => {
-    const products = createProducts(33);
+  it("drops products older than the 16-product stack", () => {
+    const products = createProducts(17);
     const { newArrivals, recentlyArrived } = partitionArrivals(products, ARRIVALS_CONFIG);
 
-    expect([...newArrivals, ...recentlyArrived].some((product) => product.id === "product-033")).toBe(false);
+    expect([...newArrivals, ...recentlyArrived].some((product) => product.id === "product-017")).toBe(false);
   });
 
   it("sorts the newest products first", () => {

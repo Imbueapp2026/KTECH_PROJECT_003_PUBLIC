@@ -50,8 +50,8 @@ function mockMotion(reducedMotion: boolean) {
 }
 
 describe("NewArrivalsStrip", () => {
-  it("shows the newest eight products and the next 24, regardless of age", () => {
-    const products = Array.from({ length: 33 }, (_, index) =>
+  it("shows the newest eight products and the next eight, regardless of age", () => {
+    const products = Array.from({ length: 17 }, (_, index) =>
       createProduct(`product-${index}`, 100 + index),
     );
 
@@ -60,8 +60,8 @@ describe("NewArrivalsStrip", () => {
     expect(screen.getByRole("heading", { name: "New Arrivals" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recently Arrived" })).toBeInTheDocument();
     expect(screen.getByText("product-0")).toBeInTheDocument();
-    expect(screen.getByText("product-31")).toBeInTheDocument();
-    expect(screen.queryByText("product-32")).not.toBeInTheDocument();
+    expect(screen.getByText("product-15")).toBeInTheDocument();
+    expect(screen.queryByText("product-16")).not.toBeInTheDocument();
     expect(screen.getAllByText("New")).toHaveLength(8);
   });
 

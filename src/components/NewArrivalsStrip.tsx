@@ -95,7 +95,7 @@ export function NewArrivalsStrip({ products, animationKey = 0 }: NewArrivalsStri
                 <h3 className="font-serif text-2xl text-charcoal sm:text-3xl">Recently Arrived</h3>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 2xl:gap-5">
+            <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
               {recentlyArrived.map((product) => (
                 <div
                   key={product.id}

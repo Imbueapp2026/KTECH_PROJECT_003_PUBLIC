@@ -1,7 +1,7 @@
 import type { ProductJoined } from "@/types";
 
 export const NEW_ARRIVALS_COUNT = 8;
-export const RECENT_ROWS = 3;
+export const RECENT_ROWS = 1;
 export const RECENT_PER_ROW = 8;
 export const RECENT_COUNT = RECENT_ROWS * RECENT_PER_ROW;
 
