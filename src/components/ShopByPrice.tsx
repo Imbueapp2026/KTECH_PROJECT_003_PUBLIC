@@ -15,6 +15,28 @@ type PriceBand = {
   } | null;
 };
 
+function appendPremiumPriceBand(bands: PriceBand[]): PriceBand[] {
+  if (bands.some((band) => band.minPrice >= 60000 && band.maxPrice === null)) {
+    return bands;
+  }
+
+  const premiumProduct = [...bands]
+    .sort((left, right) => (right.minPrice + (right.maxPrice ?? right.minPrice)) - (left.minPrice + (left.maxPrice ?? left.minPrice)))
+    .find((band) => band.product?.image_urls?.[0]);
+
+  if (!premiumProduct?.product) return bands;
+
+  return [
+    ...bands,
+    {
+      minPrice: 60000,
+      maxPrice: null,
+      label: "₹60,000+",
+      product: premiumProduct.product,
+    },
+  ];
+}
+
 export function ShopByPrice() {
   const [bands, setBands] = useState<PriceBand[]>([]);
 
@@ -23,7 +45,10 @@ export function ShopByPrice() {
     fetch("/api/price-bands")
       .then((response) => response.ok ? response.json() : null)
       .then((result) => {
-        if (mounted) setBands((result?.data ?? []).filter((band: PriceBand) => band.product?.image_urls?.[0]));
+        if (mounted) {
+          const filteredBands = (result?.data ?? []).filter((band: PriceBand) => band.product?.image_urls?.[0]);
+          setBands(appendPremiumPriceBand(filteredBands));
+        }
       })
       .catch(() => {
         if (mounted) setBands([]);
