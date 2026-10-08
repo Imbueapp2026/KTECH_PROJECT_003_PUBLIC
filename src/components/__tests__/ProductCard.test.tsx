@@ -48,7 +48,7 @@ describe('ProductCard Component', () => {
     expect(screen.getByText('No Image')).toBeInTheDocument();
   });
 
-  it('hides the New badge after five days without affecting Hallmark', () => {
+  it('does not show the New badge unless the card is in New Arrivals', () => {
     const olderProduct: ProductJoined = {
       ...mockProduct,
       created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
@@ -58,6 +58,12 @@ describe('ProductCard Component', () => {
 
     expect(screen.queryByText('New')).not.toBeInTheDocument();
     expect(screen.getByText('Hallmark')).toBeInTheDocument();
+  });
+
+  it('shows the New badge when explicitly placed in New Arrivals', () => {
+    render(<ProductCard product={mockProduct} showNewBadge />);
+
+    expect(screen.getByText('New')).toBeInTheDocument();
   });
 
   it('renders discounted price and percentage offer badge', () => {
@@ -105,7 +111,7 @@ describe('ProductCard Component', () => {
       offer_discount_type: 'making_charge',
     };
 
-    const { container } = render(<ProductCard product={productWithAllTags} />);
+    const { container } = render(<ProductCard product={productWithAllTags} showNewBadge />);
     const card = container.querySelector('a > div');
     const tagRow = card?.children[0];
     const imageFrame = card?.children[1];

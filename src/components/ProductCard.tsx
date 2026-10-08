@@ -1,18 +1,18 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { formatStoredRupees, getOfferDiscountTypeLabel, isNewArrival } from "@/lib/utils";
+import { formatStoredRupees, getOfferDiscountTypeLabel } from "@/lib/utils";
 import type { ProductJoined } from "@/types";
 
 interface ProductCardProps {
   product: ProductJoined;
   touchZoom?: boolean;
+  showNewBadge?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, showNewBadge = false }: ProductCardProps) {
   const imageUrl = product.image_urls?.[0];
   const hasOffer = Boolean(product.offer_id) && product.offer_price !== null && product.offer_price !== undefined;
-  const isNewProduct = isNewArrival(product.created_at);
   const hasOfferLabel = hasOffer && product.offer_discount_amount !== null && product.offer_discount_amount !== undefined;
   const discountTypeLabel = getOfferDiscountTypeLabel(product.offer_discount_type);
 
@@ -28,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
               Hallmark
             </span>
           )}
-          {isNewProduct && (
+          {showNewBadge && (
             <span className="inline-flex items-center rounded-full bg-dustyRose px-2 py-1 text-[10px] font-medium leading-3 text-charcoal">
               New
             </span>

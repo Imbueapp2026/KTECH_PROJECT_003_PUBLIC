@@ -76,4 +76,5 @@ describe("partitionArrivals", () => {
 
     expect(newArrivals.map((product) => product.id)).toEqual(["product-003", "product-002", "product-001"]);
   });
+
 });

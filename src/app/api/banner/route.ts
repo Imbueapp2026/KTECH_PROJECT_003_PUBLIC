@@ -5,7 +5,6 @@
 import { getAnonClient } from "@/lib/supabase";
 import { serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
-import { isNewArrival } from "@/lib/utils";
 
 export async function GET(req: Request) {
   // Handle preflight request
@@ -33,7 +32,6 @@ export async function GET(req: Request) {
           title: product.name,
           imageUrl: product.image_urls?.[0] || null,
           linkUrl: `/products/${product.id}`,
-          ...(isNewArrival(product.created_at) ? { badge: "New" } : {}),
           data: product
         });
       });
