@@ -65,8 +65,8 @@ export async function GET(req: Request) {
         purity_carats,
         created_at,
         updated_at,
-        categories (id, name, slug, icon_svg),
-        offers (id, label, description, is_active, start_date, end_date, discounts(id, discount_type, value))
+        categories (id, name, slug),
+        offers (id, label, is_active, start_date, end_date)
       `)
       .eq("status", "published");
 
