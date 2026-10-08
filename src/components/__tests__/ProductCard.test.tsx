@@ -1,8 +1,15 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ProductCard } from '../ProductCard';
 import type { ProductJoined } from '@/types';
+import { getProductNavigationPreview } from '@/lib/product-navigation-cache';
+
+const { prefetch } = vi.hoisted(() => ({ prefetch: vi.fn() }));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ prefetch }),
+}));
 
 describe('ProductCard Component', () => {
   const mockProduct: ProductJoined = {
@@ -36,6 +43,27 @@ describe('ProductCard Component', () => {
 
     const img = screen.getByRole('img');
     expect(img).toHaveAttribute('alt', '22K Gold Filigree Necklace');
+  });
+
+  it('keeps the card as a link and preloads its preview on hover and touch', () => {
+    const { unmount } = render(<ProductCard product={mockProduct} />);
+    const link = screen.getByRole('link', { name: /22K Gold Filigree Necklace/ });
+
+    expect(link).toHaveAttribute('href', '/products/prod-123');
+
+    fireEvent.mouseEnter(link);
+    expect(prefetch).toHaveBeenCalledWith('/products/prod-123');
+    expect(getProductNavigationPreview('prod-123')).toMatchObject({
+      name: '22K Gold Filigree Necklace',
+      imageUrl: 'https://example.com/necklace.jpg',
+      price: 85000,
+      categoryName: 'Necklaces',
+    });
+
+    prefetch.mockClear();
+    fireEvent.touchStart(link);
+    expect(prefetch).toHaveBeenCalledWith('/products/prod-123');
+    unmount();
   });
 
   it('displays fallback when no image is provided', () => {

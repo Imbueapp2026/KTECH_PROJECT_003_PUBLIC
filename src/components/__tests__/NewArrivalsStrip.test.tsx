@@ -3,6 +3,10 @@ import { render, screen } from "@testing-library/react";
 import { NewArrivalsStrip } from "../NewArrivalsStrip";
 import type { ProductJoined } from "@/types";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ prefetch: vi.fn() }),
+}));
+
 function createProduct(
   id: string,
   createdDaysAgo: number,

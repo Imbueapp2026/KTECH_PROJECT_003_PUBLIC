@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { formatStoredRupees, getOfferDiscountTypeLabel } from "@/lib/utils";
+import { cacheProductNavigationPreview } from "@/lib/product-navigation-cache";
 import type { ProductJoined } from "@/types";
 
 interface ProductCardProps {
@@ -11,14 +13,24 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, showNewBadge = false }: ProductCardProps) {
+  const router = useRouter();
   const imageUrl = product.image_urls?.[0];
+  const productHref = `/products/${product.id}`;
   const hasOffer = Boolean(product.offer_id) && product.offer_price !== null && product.offer_price !== undefined;
   const hasOfferLabel = hasOffer && product.offer_discount_amount !== null && product.offer_discount_amount !== undefined;
   const discountTypeLabel = getOfferDiscountTypeLabel(product.offer_discount_type);
+  const prefetchProduct = () => {
+    cacheProductNavigationPreview(product);
+    router.prefetch(productHref);
+  };
 
   return (
     <Link
-      href={`/products/${product.id}`}
+      href={productHref}
+      prefetch
+      onMouseEnter={prefetchProduct}
+      onTouchStart={prefetchProduct}
+      onFocus={prefetchProduct}
       className="block h-full group"
     >
       <div className="relative flex h-full flex-col bg-white rounded-sm overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow">
@@ -35,14 +47,13 @@ export function ProductCard({ product, showNewBadge = false }: ProductCardProps)
           )}
         </div>
 
-        <div className="aspect-square shrink-0 overflow-hidden border-b-2 border-gold bg-[#FAF8F5]">
+        <div className="relative aspect-square shrink-0 overflow-hidden border-b-2 border-gold bg-[#FAF8F5]">
           {imageUrl ? (
             <Image
               src={imageUrl}
               alt={product.name}
-              width={500}
-              height={500}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="h-full w-full object-contain p-0"
             />
           ) : (
