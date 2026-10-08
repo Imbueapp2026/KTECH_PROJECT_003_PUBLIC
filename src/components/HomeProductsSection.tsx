@@ -1,31 +1,41 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { NewArrivalsStrip } from "./NewArrivalsStrip";
 import { BentoCategoryGrid } from "./BentoCategoryGrid";
 import { ShopByPrice } from "./ShopByPrice";
 import type { ProductJoined } from "@/types";
 import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
+import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
+import { reconcileProductRealtimeEvent } from "@/lib/realtime-arrivals";
+import type { ProductChangeHandler } from "@/lib/realtime";
 
 export function HomeProductsSection() {
   const [products, setProducts] = useState<ProductJoined[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [arrivalAnimationKey, setArrivalAnimationKey] = useState(0);
+  const productsRef = useRef<ProductJoined[]>([]);
+  const requestVersionRef = useRef(0);
 
   const fetchProducts = useCallback(async () => {
+    const requestVersion = ++requestVersionRef.current;
     try {
-      const response = await fetch('/api/products?sort=created_at&order=desc&limit=100', {
+      const response = await fetch('/api/products?sort=created_at&order=desc&limit=32&include_sold=true', {
         cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
       });
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data) {
-          setProducts(result.data);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch products for home sections:', error);
+      if (!response.ok) throw new Error(`Product request failed: ${response.status}`);
+      const result = await response.json();
+      if (!Array.isArray(result.data)) throw new Error("Product response did not contain a list");
+      if (requestVersion !== requestVersionRef.current) return;
+      productsRef.current = result.data;
+      setProducts(result.data);
+      setFetchError(false);
+    } catch {
+      if (requestVersion === requestVersionRef.current) setFetchError(true);
     } finally {
-      setLoading(false);
+      if (requestVersion === requestVersionRef.current) setLoading(false);
     }
   }, []);
 
@@ -37,9 +47,40 @@ export function HomeProductsSection() {
 
   // Realtime: refresh when admin adds/edits products, offers, or pricing
   useRealtimeAdminChanges(
-    ['products', 'offers', 'discounts'],
+    ['offers', 'discounts'],
     fetchProducts,
   );
+
+  const applyProductEvent = useCallback((eventType: "INSERT" | "UPDATE" | "DELETE", payload: Parameters<ProductChangeHandler>[0], animateInsert = false) => {
+    const currentProducts = productsRef.current;
+    const nextProducts = reconcileProductRealtimeEvent(currentProducts, eventType, payload);
+    productsRef.current = nextProducts;
+    setProducts(nextProducts);
+
+    const insertedId = typeof payload.new.id === "string" ? payload.new.id : null;
+    if (animateInsert && insertedId && !currentProducts.some((product) => product.id === insertedId) && nextProducts.some((product) => product.id === insertedId)) {
+      setArrivalAnimationKey((current) => current + 1);
+    }
+    void fetchProducts();
+  }, [fetchProducts]);
+
+  const handleProductChange = useCallback<ProductChangeHandler>((payload) => {
+    applyProductEvent("UPDATE", payload);
+  }, [applyProductEvent]);
+
+  const handleProductInsert = useCallback<ProductChangeHandler>((payload) => {
+    applyProductEvent("INSERT", payload, true);
+  }, [applyProductEvent]);
+
+  const handleProductDelete = useCallback<ProductChangeHandler>((payload) => {
+    applyProductEvent("DELETE", payload);
+  }, [applyProductEvent]);
+
+  const refreshAfterReconnect = useCallback(() => {
+    void fetchProducts();
+  }, [fetchProducts]);
+
+  useRealtimeProducts(handleProductInsert, handleProductChange, handleProductDelete, refreshAfterReconnect);
 
   if (loading) {
     return (
@@ -65,8 +106,16 @@ export function HomeProductsSection() {
 
   return (
     <>
+      {fetchError && (
+        <div role="alert" className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 text-sm text-[#8A5A61] sm:px-6 lg:px-8">
+          <span>{products.length > 0 ? "Product updates could not be loaded. Showing the last available products." : "Products could not be loaded."}</span>
+          <button type="button" onClick={() => void fetchProducts()} className="shrink-0 underline underline-offset-2">
+            Retry
+          </button>
+        </div>
+      )}
       {/* New Arrivals Strip */}
-      <NewArrivalsStrip products={products} />
+      <NewArrivalsStrip products={products} animationKey={arrivalAnimationKey} />
       
       {/* Bento Category Grid */}
       <BentoCategoryGrid products={products} />

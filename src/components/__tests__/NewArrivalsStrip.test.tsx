@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NewArrivalsStrip } from "../NewArrivalsStrip";
 import type { ProductJoined } from "@/types";
@@ -28,62 +28,81 @@ function createProduct(
   };
 }
 
-describe("NewArrivalsStrip", () => {
-  it("shows only products within the five-day window, newest first", () => {
-    const newArrivals = Array.from({ length: 9 }, (_, index) =>
-      createProduct(`new-${index}`, index * 0.5),
-    );
-    const recentlyAdded = Array.from({ length: 9 }, (_, index) =>
-      createProduct(`recent-${index}`, 10 + index),
-    );
-
-    render(<NewArrivalsStrip products={[...newArrivals, ...recentlyAdded]} />);
-
-    for (let index = 0; index < 8; index += 1) {
-      expect(screen.getByText(`new-${index}`)).toBeInTheDocument();
-    }
-    expect(screen.getByText("new-8")).toBeInTheDocument();
-    expect(screen.queryByText("recent-0")).not.toBeInTheDocument();
-    expect(screen.queryByText("recent-8")).not.toBeInTheDocument();
+function mockMotion(reducedMotion: boolean) {
+  const animateDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "animate");
+  const matchMediaDescriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");
+  const animate = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: () => ({ matches: reducedMotion }),
   });
 
-  it("balances categories in both arrival groups without duplicating products", () => {
-    const newestProducts = Array.from({ length: 8 }, (_, index) =>
-      createProduct(`latest-${index}`, index * 0.1),
-    );
-    const variedRecentProducts = Array.from({ length: 16 }, (_, index) => {
-      const categoryIndex = Math.floor(index / 2);
-      return createProduct(
-        `varied-${index}`,
-        2 + index * 0.1,
-        `category-${categoryIndex}`,
-        `Category ${categoryIndex}`,
-      );
-    });
+  return {
+    animate,
+    restore() {
+      if (animateDescriptor) Object.defineProperty(HTMLElement.prototype, "animate", animateDescriptor);
+      else Reflect.deleteProperty(HTMLElement.prototype, "animate");
+      if (matchMediaDescriptor) Object.defineProperty(window, "matchMedia", matchMediaDescriptor);
+      else Reflect.deleteProperty(window, "matchMedia");
+    },
+  };
+}
 
-    render(<NewArrivalsStrip products={[...newestProducts, ...variedRecentProducts]} />);
-
-    const recentHeading = screen.getByRole("heading", { name: "Recently Added" });
-    const recentGrid = recentHeading.parentElement?.parentElement?.nextElementSibling;
-    const recentLinks = Array.from(recentGrid?.querySelectorAll("a") || []);
-    const newArrivalGrid = screen.getByRole("heading", { name: "New Arrivals" })
-      .parentElement?.parentElement?.nextElementSibling;
-    const newArrivalLinks = Array.from(newArrivalGrid?.querySelectorAll("a") || []);
-    const categoryByProductId = new Map(
-      [...newestProducts, ...variedRecentProducts].map((product) => [product.id, product.category?.slug]),
+describe("NewArrivalsStrip", () => {
+  it("shows the newest eight products and the next eight, regardless of age", () => {
+    const products = Array.from({ length: 17 }, (_, index) =>
+      createProduct(`product-${index}`, 100 + index),
     );
-    const createdAtByProductId = new Map(
-      [...newestProducts, ...variedRecentProducts].map((product) => [product.id, product.created_at]),
-    );
-    const recentlyAddedIds = recentLinks.map((link) => link.getAttribute("href")?.split("/").pop() || "");
-    const newArrivalIds = newArrivalLinks.map((link) => link.getAttribute("href")?.split("/").pop() || "");
-    const recentlyAddedCategories = recentlyAddedIds.map((id) => categoryByProductId.get(id));
 
-    expect(recentLinks).toHaveLength(8);
-    expect(newArrivalLinks).toHaveLength(8);
-    expect(new Set(recentlyAddedCategories).size).toBe(8);
-    expect(newArrivalIds.some((id) => recentlyAddedIds.includes(id))).toBe(false);
-    const recentlyAddedTimestamps = recentlyAddedIds.map((id) => Date.parse(createdAtByProductId.get(id) || ""));
-    expect(recentlyAddedTimestamps).toEqual([...recentlyAddedTimestamps].sort((a, b) => b - a));
+    render(<NewArrivalsStrip products={products} />);
+
+    expect(screen.getByRole("heading", { name: "New Arrivals" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recently Arrived" })).toBeInTheDocument();
+    expect(screen.getByText("product-0")).toBeInTheDocument();
+    expect(screen.getByText("product-15")).toBeInTheDocument();
+    expect(screen.queryByText("product-16")).not.toBeInTheDocument();
+    expect(screen.getAllByText("New")).toHaveLength(8);
+  });
+
+  it("hides Recently Arrived until a ninth published product exists", () => {
+    render(<NewArrivalsStrip products={Array.from({ length: 8 }, (_, index) => createProduct(`few-${index}`, 100))} />);
+
+    expect(screen.getByRole("heading", { name: "New Arrivals" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recently Arrived" })).not.toBeInTheDocument();
+  });
+
+  it("does not render empty section headings", () => {
+    const { container } = render(<NewArrivalsStrip products={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("animates realtime inserts but not the initial load", () => {
+    const motion = mockMotion(false);
+    try {
+      const products = Array.from({ length: 8 }, (_, index) => createProduct(`initial-${index}`, 100 + index));
+      const { rerender } = render(<NewArrivalsStrip products={products} animationKey={0} />);
+
+      expect(motion.animate).not.toHaveBeenCalled();
+      rerender(<NewArrivalsStrip products={[...products, createProduct("inserted", 0)]} animationKey={1} />);
+
+      expect(motion.animate).toHaveBeenCalled();
+    } finally {
+      motion.restore();
+    }
+  });
+
+  it("skips realtime motion when reduced motion is preferred", () => {
+    const motion = mockMotion(true);
+    try {
+      const products = Array.from({ length: 8 }, (_, index) => createProduct(`initial-${index}`, 100 + index));
+      const { rerender } = render(<NewArrivalsStrip products={products} animationKey={0} />);
+      rerender(<NewArrivalsStrip products={[...products, createProduct("inserted", 0)]} animationKey={1} />);
+
+      expect(motion.animate).not.toHaveBeenCalled();
+    } finally {
+      motion.restore();
+    }
   });
 });

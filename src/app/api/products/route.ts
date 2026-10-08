@@ -7,7 +7,7 @@ import { getAnonClient } from "@/lib/supabase";
 import { badRequest, serverError } from "@/lib/http";
 import { handlePreflight, withCors } from "@/lib/cors";
 import { normalizeProductOffer } from "@/lib/offers";
-import { NEW_ARRIVAL_DAYS } from "@/lib/utils";
+import { NEW_ARRIVALS_COUNT } from "@/lib/arrivals";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,9 +23,11 @@ export async function GET(req: Request) {
     const minPrice = Number(url.searchParams.get("minPrice"));
     const maxPrice = Number(url.searchParams.get("maxPrice"));
     const new_only = url.searchParams.get("new_only") === "true";
+    const includeSold = url.searchParams.get("include_sold") === "true";
     const sort = url.searchParams.get("sort") || "created_at";
     const order = url.searchParams.get("order") || "desc";
-    const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 100);
+    const requestedLimit = Math.min(Number(url.searchParams.get("limit")) || 50, 100);
+    const limit = new_only ? Math.min(requestedLimit, NEW_ARRIVALS_COUNT) : requestedLimit;
     const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
 
     // Validate sort parameter
@@ -66,8 +68,9 @@ export async function GET(req: Request) {
         categories (id, name, slug, icon_svg),
         offers (id, label, description, is_active, start_date, end_date, discounts(id, discount_type, value))
       `)
-      .eq("status", "published")
-      .neq("availability", "sold");
+      .eq("status", "published");
+
+    if (!includeSold) query = query.neq("availability", "sold");
 
     // Apply category filter
     if (category_id) {
@@ -86,16 +89,8 @@ export async function GET(req: Request) {
       query = query.lt("price", maxPrice);
     }
 
-    const newArrivalNow = Date.now();
-    const newArrivalCutoff = new Date(newArrivalNow - NEW_ARRIVAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-
-    // Apply new-product filter based on the database timestamp.
-    if (new_only) {
-      query = query.gte("created_at", newArrivalCutoff).lte("created_at", new Date(newArrivalNow).toISOString());
-    }
-
     // Apply sorting
-    query = query.order(sort, { ascending: order === "asc" });
+    query = query.order(sort, { ascending: order === "asc" }).order("id", { ascending: true });
 
     // Apply pagination
     query = query.range(offset, offset + limit - 1);
@@ -124,8 +119,9 @@ export async function GET(req: Request) {
     let countQuery = supabase
       .from("products")
       .select("id", { count: "exact", head: true })
-      .eq("status", "published")
-      .neq("availability", "sold");
+      .eq("status", "published");
+
+    if (!includeSold) countQuery = countQuery.neq("availability", "sold");
 
     if (category_id) {
       countQuery = countQuery.eq("category_id", category_id);
@@ -142,19 +138,16 @@ export async function GET(req: Request) {
       countQuery = countQuery.lt("price", maxPrice);
     }
 
-    if (new_only) {
-      countQuery = countQuery.gte("created_at", newArrivalCutoff).lte("created_at", new Date(newArrivalNow).toISOString());
-    }
-
     const { count: totalCount } = await countQuery;
+    const visibleTotal = new_only ? Math.min(totalCount || 0, limit) : totalCount || 0;
 
     const response = Response.json({
       data: transformedData,
       pagination: {
         limit,
         offset,
-        total: totalCount || 0,
-        hasMore: (offset + limit) < (totalCount || 0),
+        total: visibleTotal,
+        hasMore: !new_only && (offset + limit) < (totalCount || 0),
       },
     });
     return withCors(response, req, { origin: '*' });

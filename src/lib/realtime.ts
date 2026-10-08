@@ -18,6 +18,8 @@ export type ProductChangeHandler = (payload: {
   old: Record<string, unknown>;
 }) => void;
 
+export type ProductSubscriptionStatusHandler = (status: string) => void;
+
 // ─── Products ────────────────────────────────────────────────────────────────
 
 /**
@@ -26,7 +28,9 @@ export type ProductChangeHandler = (payload: {
  */
 export function subscribeToProducts(
   onInsert: ProductChangeHandler,
-  onUpdate: ProductChangeHandler
+  onUpdate: ProductChangeHandler,
+  onDelete: ProductChangeHandler = () => {},
+  onStatus?: ProductSubscriptionStatusHandler,
 ): RealtimeChannel {
   const supabase = getAnonClient();
   const channelName = `products-changes-${++channelCounter}`;
@@ -39,7 +43,6 @@ export function subscribeToProducts(
         event: 'INSERT',
         schema: 'public',
         table: 'products',
-        filter: 'status=eq.published',
       },
       onInsert
     )
@@ -49,19 +52,19 @@ export function subscribeToProducts(
         event: 'UPDATE',
         schema: 'public',
         table: 'products',
-        filter: 'status=eq.published',
       },
       onUpdate
     )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to products changes');
-      } else if (status === 'CLOSED') {
-        console.log('[Realtime] Products subscription closed');
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('[Realtime] Products subscription error');
-      }
-    });
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'products',
+      },
+      onDelete
+    )
+    .subscribe((status) => onStatus?.(status));
 
   return channel;
 }
@@ -102,11 +105,7 @@ export function subscribeToCategoryProducts(
       onUpdate
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Realtime] Subscribed to category ${categoryId} products changes`);
-      } else if (status === 'CLOSED') {
-        console.log(`[Realtime] Category ${categoryId} subscription closed`);
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error(`[Realtime] Category ${categoryId} subscription error`);
       }
     });
@@ -141,9 +140,7 @@ export function subscribeToOffers(onChange: ChangeHandler): RealtimeChannel {
       (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to offers changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Offers subscription error');
       }
     });
@@ -178,9 +175,7 @@ export function subscribeToOfferBanners(onChange: ChangeHandler): RealtimeChanne
       (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to offer_banners changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Offer banners subscription error');
       }
     });
@@ -215,9 +210,7 @@ export function subscribeToDiscounts(onChange: ChangeHandler): RealtimeChannel {
       (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to discounts changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Discounts subscription error');
       }
     });
@@ -252,9 +245,7 @@ export function subscribeToFestivals(onChange: ChangeHandler): RealtimeChannel {
       (payload) => onChange({ ...payload, eventType: 'DELETE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to festivals changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Festivals subscription error');
       }
     });
@@ -284,9 +275,7 @@ export function subscribeToGoldPrices(onChange: ChangeHandler): RealtimeChannel 
       (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to gold_prices changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Gold prices subscription error');
       }
     });
@@ -316,9 +305,7 @@ export function subscribeToSilverPrices(onChange: ChangeHandler): RealtimeChanne
       (payload) => onChange({ ...payload, eventType: 'UPDATE' } as Parameters<ChangeHandler>[0])
     )
     .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to silver_prices changes');
-      } else if (status === 'CHANNEL_ERROR') {
+      if (status === 'CHANNEL_ERROR') {
         console.error('[Realtime] Silver prices subscription error');
       }
     });
