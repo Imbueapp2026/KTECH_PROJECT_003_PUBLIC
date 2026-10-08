@@ -15,19 +15,32 @@ type PriceBand = {
   } | null;
 };
 
-function appendPremiumPriceBand(bands: PriceBand[]): PriceBand[] {
-  if (bands.some((band) => band.minPrice >= 60000 && band.maxPrice === null)) {
-    return bands;
+function normalizePremiumPriceBand(bands: PriceBand[]): PriceBand[] {
+  const normalizedBands = bands.map((band) => {
+    if (band.maxPrice !== null && band.maxPrice >= 60000 && band.minPrice >= 50000) {
+      return {
+        ...band,
+        minPrice: 60000,
+        maxPrice: null,
+        label: "₹60,000+",
+      };
+    }
+
+    return band;
+  });
+
+  if (normalizedBands.some((band) => band.minPrice >= 60000 && band.maxPrice === null)) {
+    return normalizedBands;
   }
 
-  const premiumProduct = [...bands]
+  const premiumProduct = [...normalizedBands]
     .sort((left, right) => (right.minPrice + (right.maxPrice ?? right.minPrice)) - (left.minPrice + (left.maxPrice ?? left.minPrice)))
     .find((band) => band.product?.image_urls?.[0]);
 
-  if (!premiumProduct?.product) return bands;
+  if (!premiumProduct?.product) return normalizedBands;
 
   return [
-    ...bands,
+    ...normalizedBands,
     {
       minPrice: 60000,
       maxPrice: null,
@@ -47,7 +60,7 @@ export function ShopByPrice() {
       .then((result) => {
         if (mounted) {
           const filteredBands = (result?.data ?? []).filter((band: PriceBand) => band.product?.image_urls?.[0]);
-          setBands(appendPremiumPriceBand(filteredBands));
+          setBands(normalizePremiumPriceBand(filteredBands));
         }
       })
       .catch(() => {
