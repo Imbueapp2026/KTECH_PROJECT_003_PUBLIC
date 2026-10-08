@@ -1,42 +1,59 @@
 "use client";
 
+import { useLayoutEffect, useRef } from "react";
 import { ProductCard } from "./ProductCard";
 import { ARRIVALS_CONFIG, partitionArrivals } from "@/lib/arrivals";
 import type { ProductJoined } from "@/types";
 
 interface NewArrivalsStripProps {
   products: ProductJoined[];
+  animationKey?: number;
 }
 
-function selectCategoryDiverseProducts(products: ProductJoined[], limit: number): ProductJoined[] {
-  const selected: ProductJoined[] = [];
-  const selectedIds = new Set<string>();
-  const selectedCategories = new Set<string>();
-
-  for (const product of products) {
-    const categoryKey = product.category_id || product.category?.id || product.category?.slug || product.id;
-    if (selectedCategories.has(categoryKey)) continue;
-
-    selected.push(product);
-    selectedIds.add(product.id);
-    selectedCategories.add(categoryKey);
-    if (selected.length === limit) break;
-  }
-
-  if (selected.length < limit) {
-    for (const product of products) {
-      if (selectedIds.has(product.id)) continue;
-
-      selected.push(product);
-      if (selected.length === limit) break;
-    }
-  }
-
-  return selected.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-}
-
-export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
+export function NewArrivalsStrip({ products, animationKey = 0 }: NewArrivalsStripProps) {
+  const cardNodesRef = useRef(new Map<string, HTMLElement>());
+  const previousPositionsRef = useRef<Map<string, DOMRect> | null>(null);
   const { newArrivals, recentlyArrived } = partitionArrivals(products, ARRIVALS_CONFIG);
+
+  useLayoutEffect(() => {
+    const previousPositions = previousPositionsRef.current;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+    if (previousPositions && !reducedMotion) {
+      for (const [productId, node] of cardNodesRef.current) {
+        if (typeof node.animate !== "function") continue;
+        const previous = previousPositions.get(productId);
+        const current = node.getBoundingClientRect();
+
+        if (previous) {
+          const deltaX = previous.left - current.left;
+          const deltaY = previous.top - current.top;
+          if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) continue;
+          node.animate(
+            [
+              { transform: `translate(${deltaX}px, ${deltaY}px)`, opacity: 0.9 },
+              { transform: "translate(0, 0)", opacity: 1 },
+            ],
+            { duration: 400, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" },
+          );
+        } else {
+          node.animate(
+            [
+              { transform: "translateY(8px)", opacity: 0 },
+              { transform: "translateY(0)", opacity: 1 },
+            ],
+            { duration: 400, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" },
+          );
+        }
+      }
+    }
+  }, [animationKey]);
+
+  useLayoutEffect(() => () => {
+    previousPositionsRef.current = new Map(
+      [...cardNodesRef.current].map(([productId, node]) => [productId, node.getBoundingClientRect()]),
+    );
+  }, [products, animationKey]);
 
   if (newArrivals.length === 0 && recentlyArrived.length === 0) return null;
 
@@ -56,7 +73,14 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
         {newArrivals.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-7">
             {newArrivals.map((product) => (
-              <div key={product.id} className="relative">
+              <div
+                key={product.id}
+                ref={(node) => {
+                  if (node) cardNodesRef.current.set(product.id, node);
+                  else cardNodesRef.current.delete(product.id);
+                }}
+                className="relative"
+              >
                 <ProductCard product={product} showNewBadge />
               </div>
             ))}
@@ -73,7 +97,14 @@ export function NewArrivalsStrip({ products }: NewArrivalsStripProps) {
             </div>
             <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 2xl:gap-5">
               {recentlyArrived.map((product) => (
-                <div key={product.id} className="relative">
+                <div
+                  key={product.id}
+                  ref={(node) => {
+                    if (node) cardNodesRef.current.set(product.id, node);
+                    else cardNodesRef.current.delete(product.id);
+                  }}
+                  className="relative"
+                >
                   <ProductCard product={product} />
                 </div>
               ))}

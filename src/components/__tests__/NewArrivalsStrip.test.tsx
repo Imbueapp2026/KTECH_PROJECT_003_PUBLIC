@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NewArrivalsStrip } from "../NewArrivalsStrip";
 import type { ProductJoined } from "@/types";
@@ -25,6 +25,27 @@ function createProduct(
     updated_at: createdAt,
     image_urls: [],
     hallmark_certified: true,
+  };
+}
+
+function mockMotion(reducedMotion: boolean) {
+  const animateDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "animate");
+  const matchMediaDescriptor = Object.getOwnPropertyDescriptor(window, "matchMedia");
+  const animate = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "animate", { configurable: true, value: animate });
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: () => ({ matches: reducedMotion }),
+  });
+
+  return {
+    animate,
+    restore() {
+      if (animateDescriptor) Object.defineProperty(HTMLElement.prototype, "animate", animateDescriptor);
+      else Reflect.deleteProperty(HTMLElement.prototype, "animate");
+      if (matchMediaDescriptor) Object.defineProperty(window, "matchMedia", matchMediaDescriptor);
+      else Reflect.deleteProperty(window, "matchMedia");
+    },
   };
 }
 
@@ -55,5 +76,33 @@ describe("NewArrivalsStrip", () => {
     const { container } = render(<NewArrivalsStrip products={[]} />);
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("animates realtime inserts but not the initial load", () => {
+    const motion = mockMotion(false);
+    try {
+      const products = Array.from({ length: 8 }, (_, index) => createProduct(`initial-${index}`, 100 + index));
+      const { rerender } = render(<NewArrivalsStrip products={products} animationKey={0} />);
+
+      expect(motion.animate).not.toHaveBeenCalled();
+      rerender(<NewArrivalsStrip products={[...products, createProduct("inserted", 0)]} animationKey={1} />);
+
+      expect(motion.animate).toHaveBeenCalled();
+    } finally {
+      motion.restore();
+    }
+  });
+
+  it("skips realtime motion when reduced motion is preferred", () => {
+    const motion = mockMotion(true);
+    try {
+      const products = Array.from({ length: 8 }, (_, index) => createProduct(`initial-${index}`, 100 + index));
+      const { rerender } = render(<NewArrivalsStrip products={products} animationKey={0} />);
+      rerender(<NewArrivalsStrip products={[...products, createProduct("inserted", 0)]} animationKey={1} />);
+
+      expect(motion.animate).not.toHaveBeenCalled();
+    } finally {
+      motion.restore();
+    }
   });
 });
