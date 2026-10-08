@@ -8,13 +8,19 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useRealtimeProducts(
   onInsert: ProductChangeHandler,
-  onUpdate: ProductChangeHandler
+  onUpdate: ProductChangeHandler,
+  onDelete: ProductChangeHandler = () => {},
+  onReconnect: () => void = () => {},
 ) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    // Subscribe to product changes
-    channelRef.current = subscribeToProducts(onInsert, onUpdate);
+    let hasConnected = false;
+    channelRef.current = subscribeToProducts(onInsert, onUpdate, onDelete, (status) => {
+      if (status !== 'SUBSCRIBED') return;
+      if (hasConnected) onReconnect();
+      hasConnected = true;
+    });
 
     // Cleanup on unmount
     return () => {
@@ -23,7 +29,7 @@ export function useRealtimeProducts(
         channelRef.current = null;
       }
     };
-  }, [onInsert, onUpdate]);
+  }, [onInsert, onUpdate, onDelete, onReconnect]);
 }
 
 /**

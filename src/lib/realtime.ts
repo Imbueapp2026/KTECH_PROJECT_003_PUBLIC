@@ -18,6 +18,8 @@ export type ProductChangeHandler = (payload: {
   old: Record<string, unknown>;
 }) => void;
 
+export type ProductSubscriptionStatusHandler = (status: string) => void;
+
 // ─── Products ────────────────────────────────────────────────────────────────
 
 /**
@@ -26,7 +28,9 @@ export type ProductChangeHandler = (payload: {
  */
 export function subscribeToProducts(
   onInsert: ProductChangeHandler,
-  onUpdate: ProductChangeHandler
+  onUpdate: ProductChangeHandler,
+  onDelete: ProductChangeHandler = () => {},
+  onStatus?: ProductSubscriptionStatusHandler,
 ): RealtimeChannel {
   const supabase = getAnonClient();
   const channelName = `products-changes-${++channelCounter}`;
@@ -39,7 +43,6 @@ export function subscribeToProducts(
         event: 'INSERT',
         schema: 'public',
         table: 'products',
-        filter: 'status=eq.published',
       },
       onInsert
     )
@@ -49,19 +52,19 @@ export function subscribeToProducts(
         event: 'UPDATE',
         schema: 'public',
         table: 'products',
-        filter: 'status=eq.published',
       },
       onUpdate
     )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('[Realtime] Subscribed to products changes');
-      } else if (status === 'CLOSED') {
-        console.log('[Realtime] Products subscription closed');
-      } else if (status === 'CHANNEL_ERROR') {
-        console.error('[Realtime] Products subscription error');
-      }
-    });
+    .on(
+      'postgres_changes',
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'products',
+      },
+      onDelete
+    )
+    .subscribe((status) => onStatus?.(status));
 
   return channel;
 }
