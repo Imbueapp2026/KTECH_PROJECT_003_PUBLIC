@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { unstable_cache } from 'next/cache';
 import { getAnonClient } from '@/lib/supabase';
-import { normalizeProductOffer } from '@/lib/offers';
 import { ProductDetailView } from './ProductDetailView';
 import { ProductRelatedSection } from './ProductRelatedSection';
 import type { ProductJoined } from '@/types';
@@ -30,25 +29,18 @@ const getCachedProduct = unstable_cache(async (id: string): Promise<ProductJoine
       image_urls,
       availability,
       hallmark_certified,
-      status,
       category_id,
       offer_id,
-      created_at,
-      updated_at,
       purity_carats,
       weight_grams,
       net_weight_grams,
       making_charge_percent,
       making_charge_flat,
       making_charge_type,
-      price_auto_calculated,
       certifications,
-      gold_price_used,
       material_type,
       gst_percent,
-      festival_id,
-      categories (id, name, slug, icon_svg),
-      offers (id, label, description, is_active, start_date, end_date, discounts(discount_type, value))
+      categories (name)
     `)
     .eq("id", id)
     .eq("status", "published")
@@ -57,16 +49,12 @@ const getCachedProduct = unstable_cache(async (id: string): Promise<ProductJoine
   if (error || !data) return null;
 
   const category = Array.isArray(data.categories) ? data.categories[0] : data.categories;
-  const offer = normalizeProductOffer(data.offers);
-
   const restData = { ...(data as Record<string, unknown>) };
   delete restData.categories;
-  delete restData.offers;
 
   return {
     ...restData,
     category: category || null,
-    offer,
   } as unknown as ProductJoined;
 }, ['published-product-by-id'], { revalidate: 60 });
 
@@ -106,10 +94,8 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
       image_urls,
       availability,
       hallmark_certified,
-      category_id,
       offer_id,
-      categories (id, name, slug),
-      offers (id, label, description, is_active, start_date, end_date, discounts(discount_type, value))
+      categories (name)
     `)
     .eq("category_id", categoryId)
     .eq("status", "published")
@@ -119,14 +105,11 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
 
   return (data || []).map((p) => {
     const category = Array.isArray(p.categories) ? p.categories[0] : p.categories;
-    const offer = normalizeProductOffer(p.offers);
     const restData = { ...(p as Record<string, unknown>) };
     delete restData.categories;
-    delete restData.offers;
     return {
       ...restData,
       category: category || null,
-      offer,
     } as unknown as ProductJoined;
   });
 }

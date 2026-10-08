@@ -65,8 +65,8 @@ export async function GET(req: Request) {
         purity_carats,
         created_at,
         updated_at,
-        categories (id, name, slug, icon_svg),
-        offers (id, label, description, is_active, start_date, end_date, discounts(id, discount_type, value))
+        categories (id, name, slug),
+        offers (id, label, is_active, start_date, end_date)
       `)
       .eq("status", "published");
 
@@ -95,26 +95,6 @@ export async function GET(req: Request) {
     // Apply pagination
     query = query.range(offset, offset + limit - 1);
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Products query error:", error);
-      return serverError("Failed to fetch products");
-    }
-
-    // Transform response to match expected type and normalize nested relations.
-    const transformedData = data?.map((item: Record<string, unknown>) => {
-      const processedOffer = normalizeProductOffer(item.offers);
-
-      return {
-        ...item,
-        category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
-        offer: processedOffer,
-        categories: undefined,
-        offers: undefined,
-      };
-    }) || [];
-
     // Get total count for pagination
     let countQuery = supabase
       .from("products")
@@ -138,7 +118,26 @@ export async function GET(req: Request) {
       countQuery = countQuery.lt("price", maxPrice);
     }
 
-    const { count: totalCount } = await countQuery;
+    const [{ data, error }, { count: totalCount }] = await Promise.all([query, countQuery]);
+
+    if (error) {
+      console.error("Products query error:", error);
+      return serverError("Failed to fetch products");
+    }
+
+    // Transform response to match expected type and normalize nested relations.
+    const transformedData = data?.map((item: Record<string, unknown>) => {
+      const processedOffer = normalizeProductOffer(item.offers);
+
+      return {
+        ...item,
+        category: Array.isArray(item.categories) ? item.categories[0] : item.categories || null,
+        offer: processedOffer,
+        categories: undefined,
+        offers: undefined,
+      };
+    }) || [];
+
     const visibleTotal = new_only ? Math.min(totalCount || 0, limit) : totalCount || 0;
 
     const response = Response.json({
