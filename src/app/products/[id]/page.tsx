@@ -1,15 +1,21 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import { unstable_cache } from 'next/cache';
 import { getAnonClient } from '@/lib/supabase';
 import { normalizeProductOffer } from '@/lib/offers';
 import { ProductDetailView } from './ProductDetailView';
+import { ProductRelatedSection } from './ProductRelatedSection';
 import type { ProductJoined } from '@/types';
+
+export const revalidate = 60;
+export const dynamicParams = true;
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-async function getProduct(id: string): Promise<ProductJoined | null> {
+const getCachedProduct = unstable_cache(async (id: string): Promise<ProductJoined | null> => {
   const supabase = getAnonClient();
   const { data, error } = await supabase
     .from("products")
@@ -62,6 +68,27 @@ async function getProduct(id: string): Promise<ProductJoined | null> {
     category: category || null,
     offer,
   } as unknown as ProductJoined;
+}, ['published-product-by-id'], { revalidate: 60 });
+
+export async function generateStaticParams(): Promise<{ id: string }[]> {
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase
+      .from('products')
+      .select('id')
+      .eq('status', 'published')
+      .limit(1000);
+
+    if (error) {
+      console.error('[products] Failed to load published IDs for static generation:', error);
+      return [];
+    }
+
+    return (data ?? []).map(({ id }) => ({ id }));
+  } catch (error) {
+    console.error('[products] Static generation is falling back to on-demand IDs:', error);
+    return [];
+  }
 }
 
 async function getRelatedProducts(categoryId: string, currentProductId: string): Promise<ProductJoined[]> {
@@ -79,24 +106,9 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
       image_urls,
       availability,
       hallmark_certified,
-      status,
       category_id,
       offer_id,
-      created_at,
-      updated_at,
-      purity_carats,
-      weight_grams,
-      net_weight_grams,
-      making_charge_percent,
-      making_charge_flat,
-      making_charge_type,
-      price_auto_calculated,
-      certifications,
-      gold_price_used,
-      material_type,
-      gst_percent,
-      festival_id,
-      categories (id, name, slug, icon_svg),
+      categories (id, name, slug),
       offers (id, label, description, is_active, start_date, end_date, discounts(discount_type, value))
     `)
     .eq("category_id", categoryId)
@@ -121,7 +133,7 @@ async function getRelatedProducts(categoryId: string, currentProductId: string):
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProduct(id);
+  const product = await getCachedProduct(id);
 
   if (!product) {
     return {
@@ -156,15 +168,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { id } = await params;
-  const product = await getProduct(id);
+  const product = await getCachedProduct(id);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = product.category_id
-    ? await getRelatedProducts(product.category_id, product.id)
-    : [];
+  return (
+    <>
+      <ProductDetailView product={product} />
+      {product.category_id && (
+        <Suspense fallback={<RelatedProductsSkeleton />}>
+          <ProductRelatedSection
+            categoryId={product.category_id}
+            currentProductId={product.id}
+            getRelatedProducts={getRelatedProducts}
+          />
+        </Suspense>
+      )}
+    </>
+  );
+}
 
-  return <ProductDetailView product={product} relatedProducts={relatedProducts} />;
+function RelatedProductsSkeleton() {
+  return (
+    <section className="mx-auto mt-12 max-w-4xl px-3 sm:px-4 md:px-8" aria-hidden="true">
+      <div className="mb-6 h-8 w-48 animate-pulse rounded bg-gray-200" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="aspect-square animate-pulse rounded-sm bg-gray-100" />
+        ))}
+      </div>
+    </section>
+  );
 }

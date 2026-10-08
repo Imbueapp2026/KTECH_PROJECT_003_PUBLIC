@@ -5,18 +5,15 @@ import Image from "next/image";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { formatPrice, formatStoredRupees, formatWeight, getOfferDiscountTypeLabel } from "@/lib/utils";
 import { InquiryCTA } from "@/components/InquiryCTA";
-import { ProductCard } from "@/components/ProductCard";
 import type { ProductJoined } from "@/types";
 import { useRealtimeAdminChanges } from "@/hooks/useRealtimeAdminChanges";
 
 interface ProductDetailViewProps {
   product: ProductJoined;
-  relatedProducts: ProductJoined[];
 }
 
-export function ProductDetailView({ product: initialProduct, relatedProducts: initialRelated }: ProductDetailViewProps) {
+export function ProductDetailView({ product: initialProduct }: ProductDetailViewProps) {
   const [product, setProduct] = useState(initialProduct);
-  const [relatedProducts] = useState(initialRelated);
   const productIdRef = useRef(initialProduct.id);
 
   // Refetch product data when admin makes changes
@@ -250,18 +247,6 @@ export function ProductDetailView({ product: initialProduct, relatedProducts: in
             </div>
           </div>
         </div>
-
-        {/* You may also like section */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-serif text-charcoal mb-6">You may also like</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <ProductCard key={relatedProduct.id} product={relatedProduct} />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
